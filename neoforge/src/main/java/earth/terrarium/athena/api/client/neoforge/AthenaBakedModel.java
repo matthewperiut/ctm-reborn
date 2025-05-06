@@ -2,14 +2,14 @@ package earth.terrarium.athena.api.client.neoforge;
 
 import earth.terrarium.athena.api.client.models.AthenaBlockModel;
 import earth.terrarium.athena.api.client.models.AthenaQuad;
-import earth.terrarium.athena.api.client.utils.AthenaUtils;
 import earth.terrarium.athena.api.client.utils.NullableEnumMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.Optionull;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.ItemTransforms;
+import net.minecraft.client.renderer.block.model.BlockModelPart;
+import net.minecraft.client.renderer.block.model.BlockStateModel;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -19,53 +19,28 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.ChunkRenderTypeSet;
-import net.neoforged.neoforge.client.model.IDynamicBakedModel;
-import net.neoforged.neoforge.client.model.data.ModelData;
-import net.neoforged.neoforge.client.model.data.ModelProperty;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
-public class AthenaBakedModel implements IDynamicBakedModel {
+public class AthenaBakedModel implements BlockStateModel {
 
     private static final Direction[] DIRECTIONS = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST, Direction.UP, Direction.DOWN};
 
-    public static final ModelProperty<NullableEnumMap<Direction, Map<Direction, List<AthenaQuad>>>> DATA = new ModelProperty<>();
-
     private final AthenaBlockModel model;
     private final Int2ObjectMap<TextureAtlasSprite> textures;
-    private final ChunkRenderTypeSet renderTypes;
+    private final BlockModelPart part;
 
     public AthenaBakedModel(AthenaBlockModel model, Function<Material, TextureAtlasSprite> function) {
         this.model = model;
         this.textures = this.model.getTextures(function);
-        this.renderTypes = Optionull.map(this.model.getRenderType(), ChunkRenderTypeSet::of);
-    }
-
-    @SuppressWarnings("DataFlowIssue")
-    @Override
-    public @NotNull List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction direction, @NotNull RandomSource random, @NotNull ModelData data, @Nullable RenderType type) {
-        List<BakedQuad> quads = new ArrayList<>();
-        try {
-            Map<Direction, List<AthenaQuad>> values = data.has(DATA) ?
-                    data.get(DATA).getOrDefault(direction, Map.of()) :
-                    this.model.getDefaultQuads(direction);
-            values.forEach((dir, quadList) -> quads.addAll(bakeQuads(quadList, dir)));
-        }catch (Exception e) {
-            AthenaUtils.LOGGER.error("Error occurred while getting quads of Athena block model", e);
-            throw e; //We do this because Mojang tends to capture and do nothing with the error messages print error type.
-        }
-        return quads;
+        this.part = new Part(this.model.getRenderType());
     }
 
     @Override
-    public @NotNull ModelData getModelData(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull ModelData data) {
+    public void collectParts(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull RandomSource random, @NotNull List<BlockModelPart> parts) {
         WrappedGetter getter = new WrappedGetter(level);
         final NullableEnumMap<Direction, Map<Direction, List<AthenaQuad>>> quads = new NullableEnumMap<>(Direction.class);
         Map<Direction, List<AthenaQuad>> nonCullQuads = new HashMap<>();
@@ -83,50 +58,65 @@ public class AthenaBakedModel implements IDynamicBakedModel {
             nonCullQuads.put(direction, unculledQuads);
         }
         quads.put(null, nonCullQuads);
-        return data.derive().with(DATA, quads).build();
+        parts.add(new AthenaModelPart(this.part, quads, this.textures));
     }
 
-    private List<BakedQuad> bakeQuads(List<AthenaQuad> quads, Direction direction) {
-        List<BakedQuad> bakedQuads = new ArrayList<>(quads.size());
-        for (AthenaQuad quad : quads) {
-            TextureAtlasSprite sprite = this.textures.get(quad.sprite());
-            if (sprite == null) continue;
-            bakedQuads.addAll(ForgeAthenaUtils.bakeQuad(quad, direction, sprite));
+    @Override
+    public void collectParts(@NotNull RandomSource arg, @NotNull List<BlockModelPart> list) {
+        list.add(this.part);
+    }
+
+    @Override
+    public @NotNull TextureAtlasSprite particleIcon() {
+        return this.part.particleIcon();
+    }
+
+    private class Part implements BlockModelPart {
+
+        private final NullableEnumMap<Direction, List<BakedQuad>> defaultQuads = new NullableEnumMap<>(Direction.class);
+        private final RenderType renderType;
+
+        public Part(RenderType renderType) {
+            this.renderType = renderType;
         }
-        return bakedQuads;
-    }
 
-    @Override
-    public boolean useAmbientOcclusion() {
-        return true;
-    }
+        @Override
+        public @NotNull List<BakedQuad> getQuads(@Nullable Direction arg) {
+            var quads = this.defaultQuads.get(arg);
+            if (quads == null) {
+                quads = new ArrayList<>();
 
-    @Override
-    public boolean isGui3d() {
-        return false;
-    }
+                var defaults = AthenaBakedModel.this.model.getDefaultQuads(arg);
+                for (var entry : defaults.entrySet()) {
+                    for (var quad : entry.getValue()) {
+                        TextureAtlasSprite sprite = AthenaBakedModel.this.textures.get(quad.sprite());
+                        if (sprite == null) continue;
+                        quads.addAll(ForgeAthenaUtils.bakeQuad(quad, entry.getKey(), sprite));
+                    }
+                }
 
-    @Override
-    public boolean usesBlockLight() {
-        return true;
-    }
-
-    @Override
-    public @NotNull TextureAtlasSprite getParticleIcon() {
-        if (this.textures.containsKey(0)) {
-            return this.textures.get(0);
+                this.defaultQuads.put(arg, quads);
+            }
+            return quads;
         }
-        return Minecraft.getInstance().getModelManager().getAtlas(TextureAtlas.LOCATION_BLOCKS).getSprite(MissingTextureAtlasSprite.getLocation());
-    }
 
-    @Override
-    public @NotNull ItemTransforms getTransforms() {
-        return ItemTransforms.NO_TRANSFORMS;
-    }
+        @SuppressWarnings("deprecation")
+        @Override
+        public @NotNull RenderType getRenderType(@NotNull BlockState state) {
+            return Objects.requireNonNullElseGet(this.renderType, () -> ItemBlockRenderTypes.getChunkRenderType(state));
+        }
 
-    @Override
-    public @NotNull ChunkRenderTypeSet getRenderTypes(@NotNull BlockState state, @NotNull RandomSource rand, @NotNull ModelData data) {
-        if (renderTypes != null) return renderTypes;
-        return IDynamicBakedModel.super.getRenderTypes(state, rand, data);
+        @Override
+        public boolean useAmbientOcclusion() {
+            return true;
+        }
+
+        @Override
+        public @NotNull TextureAtlasSprite particleIcon() {
+            if (AthenaBakedModel.this.textures.containsKey(0)) {
+                return AthenaBakedModel.this.textures.get(0);
+            }
+            return Minecraft.getInstance().getModelManager().getAtlas(TextureAtlas.LOCATION_BLOCKS).getSprite(MissingTextureAtlasSprite.getLocation());
+        }
     }
 }

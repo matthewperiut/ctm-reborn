@@ -11,7 +11,7 @@ public class AthenaModelLoadingPlugin implements ModelLoadingPlugin {
     public void initialize(Context context) {
         FactoryManagerImpl.LOADERS.forEach((id, loader) ->
                 context.modifyBlockModelBeforeBake().register((model, ctx) ->
-                        Objects.requireNonNullElse(loader.loadModel(ctx.id()), model)
+                        Objects.requireNonNullElse(loader.loadModel(ctx.state()), model)
                 )
         );
     }

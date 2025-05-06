@@ -2,14 +2,12 @@ package earth.terrarium.athena.mixins.neoforge;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Local;
 import earth.terrarium.athena.api.client.models.neoforge.FactoryManagerImpl;
-import net.minecraft.client.renderer.block.model.UnbakedBlockStateModel;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.renderer.block.model.BlockStateModel;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ModelBakery;
-import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -17,20 +15,24 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class ModelBakeryMixin {
 
     @WrapOperation(
-            method = "method_65737",
+            method = "method_68018",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/block/model/UnbakedBlockStateModel;bake(Lnet/minecraft/client/resources/model/ModelBaker;)Lnet/minecraft/client/resources/model/BakedModel;"
+                    target = "Lnet/minecraft/client/renderer/block/model/BlockStateModel$UnbakedRoot;bake(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/client/resources/model/ModelBaker;)Lnet/minecraft/client/renderer/block/model/BlockStateModel;"
             )
     )
-    private BakedModel stitch$loadModel(UnbakedBlockStateModel instance, ModelBaker baker, Operation<BakedModel> original, @Local(argsOnly = true) ModelResourceLocation id) {
+    private static BlockStateModel stitch$loadModel(
+            BlockStateModel.UnbakedRoot instance,
+            BlockState blockState,
+            ModelBaker baker, Operation<BlockStateModel> original
+    ) {
         for (ResourceLocation type : FactoryManagerImpl.getTypes()) {
-            UnbakedBlockStateModel model = FactoryManagerImpl.get(type).loadModel(id);
+            BlockStateModel.UnbakedRoot model = FactoryManagerImpl.get(type).loadModel(blockState);
             if (model != null) {
                 instance = model;
                 break;
             }
         }
-        return original.call(instance, baker);
+        return original.call(instance, blockState, baker);
     }
 }

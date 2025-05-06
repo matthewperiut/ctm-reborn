@@ -32,10 +32,10 @@ public class AthenaResourceLoader extends SimpleJsonResourceReloadListener<JsonE
         INSTANCE.blockstateData.clear();
     }
 
-    public static void addBlockstateData(ResourceLocation stateId, JsonObject data) {
-        if (data == null) return;
-        if (!data.has(KEY)) return;
-        INSTANCE.blockstateData.put(stateId, data);
+    public static void addBlockstateData(ResourceLocation stateId, JsonElement data) {
+        if (!(data instanceof JsonObject object)) return;
+        if (!object.has(KEY)) return;
+        INSTANCE.blockstateData.put(stateId, object);
     }
 
     @Override

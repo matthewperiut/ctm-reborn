@@ -1,15 +1,14 @@
 package earth.terrarium.athena.api.client.neoforge;
 
 import earth.terrarium.athena.api.client.models.AthenaBlockModel;
-import net.minecraft.client.renderer.block.model.UnbakedBlockStateModel;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.renderer.block.model.BlockStateModel;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Supplier;
 
-public class AthenaUnbakedModel implements UnbakedBlockStateModel {
+public class AthenaUnbakedModel implements BlockStateModel.UnbakedRoot {
 
     private final Supplier<AthenaBlockModel> model;
 
@@ -23,8 +22,8 @@ public class AthenaUnbakedModel implements UnbakedBlockStateModel {
     }
 
     @Override
-    public @NotNull BakedModel bake(ModelBaker baker) {
-        return new AthenaBakedModel(this.model.get(), baker.sprites()::get);
+    public @NotNull BlockStateModel bake(@NotNull BlockState state, @NotNull ModelBaker baker) {
+        return new AthenaBakedModel(this.model.get(), material -> baker.sprites().get(material, () -> "Athena: ?"));
     }
 
     @Override
