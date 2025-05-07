@@ -24,6 +24,10 @@ public class AthenaUnbakedModelLoader {
         this.loader = loader;
     }
 
+    public ResourceLocation id() {
+        return this.id;
+    }
+
     public @Nullable BlockStateModel.UnbakedRoot loadModel(BlockState state) {
         var id = state.getBlock().builtInRegistryHolder().key().location();
         JsonObject json = AthenaResourceLoader.getData(this.id, id);
