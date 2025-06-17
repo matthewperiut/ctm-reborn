@@ -11,7 +11,7 @@ import earth.terrarium.athena.api.client.utils.CtmState;
 import earth.terrarium.athena.api.client.utils.CtmUtils;
 import earth.terrarium.athena.impl.client.models.ctm.ConnectedTextureMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.core.BlockPos;
@@ -32,16 +32,16 @@ public class ConnectedBlockModel implements AthenaBlockModel {
 
     private final ConnectedTextureMap materials;
     private final BiPredicate<BlockState, BlockState> connectTo;
-    private final RenderType renderType;
+    private final ChunkSectionLayer layerType;
 
     public ConnectedBlockModel(ConnectedTextureMap materials, BiPredicate<BlockState, BlockState> connectTo) {
         this(materials, connectTo, null);
     }
 
-    public ConnectedBlockModel(ConnectedTextureMap materials, BiPredicate<BlockState, BlockState> connectTo, RenderType renderType) {
+    public ConnectedBlockModel(ConnectedTextureMap materials, BiPredicate<BlockState, BlockState> connectTo, ChunkSectionLayer layerType) {
         this.materials = materials;
         this.connectTo = connectTo;
-        this.renderType = renderType;
+        this.layerType = layerType;
     }
 
     @Override
@@ -84,8 +84,8 @@ public class ConnectedBlockModel implements AthenaBlockModel {
     }
 
     @Override
-    public @Nullable RenderType getRenderType() {
-        return this.renderType;
+    public @Nullable ChunkSectionLayer getLayerType() {
+        return this.layerType;
     }
 
     private static class Factory implements AthenaModelFactory {
@@ -102,7 +102,7 @@ public class ConnectedBlockModel implements AthenaBlockModel {
             }
             final var materialsFinal = materials;
             BiPredicate<BlockState, BlockState> conditions = CtmUtils.parseCondition(json);
-            return () -> new ConnectedBlockModel(materialsFinal, conditions, AthenaUtils.renderTypeFromJson(json));
+            return () -> new ConnectedBlockModel(materialsFinal, conditions, AthenaUtils.layerFromJson(json));
         }
 
         private static ConnectedTextureMap parseMaterials(JsonObject json) {

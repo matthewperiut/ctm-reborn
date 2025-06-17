@@ -1,2 +1,1 @@
-- Update to 1.21.5
-- Seemless glass pane option
+- Update to 1.21.6

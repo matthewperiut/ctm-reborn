@@ -5,11 +5,10 @@ import earth.terrarium.athena.api.client.models.AthenaQuad;
 import earth.terrarium.athena.api.client.utils.NullableEnumMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.BlockModelPart;
 import net.minecraft.client.renderer.block.model.BlockStateModel;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -36,7 +35,7 @@ public class AthenaBakedModel implements BlockStateModel {
     public AthenaBakedModel(AthenaBlockModel model, Function<Material, TextureAtlasSprite> function) {
         this.model = model;
         this.textures = this.model.getTextures(function);
-        this.part = new Part(this.model.getRenderType());
+        this.part = new Part(this.model.getLayerType());
     }
 
     @Override
@@ -74,10 +73,10 @@ public class AthenaBakedModel implements BlockStateModel {
     private class Part implements BlockModelPart {
 
         private final NullableEnumMap<Direction, List<BakedQuad>> defaultQuads = new NullableEnumMap<>(Direction.class);
-        private final RenderType renderType;
+        private final ChunkSectionLayer layerType;
 
-        public Part(RenderType renderType) {
-            this.renderType = renderType;
+        public Part(ChunkSectionLayer layerType) {
+            this.layerType = layerType;
         }
 
         @Override
@@ -100,10 +99,9 @@ public class AthenaBakedModel implements BlockStateModel {
             return quads;
         }
 
-        @SuppressWarnings("deprecation")
         @Override
-        public @NotNull RenderType getRenderType(@NotNull BlockState state) {
-            return Objects.requireNonNullElseGet(this.renderType, () -> ItemBlockRenderTypes.getChunkRenderType(state));
+        public @NotNull ChunkSectionLayer getRenderType(@NotNull BlockState state) {
+            return Objects.requireNonNullElseGet(this.layerType, () -> BlockModelPart.super.getRenderType(state));
         }
 
         @Override

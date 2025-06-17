@@ -3,9 +3,9 @@ package earth.terrarium.athena.api.client.neoforge;
 import earth.terrarium.athena.api.client.models.AthenaQuad;
 import earth.terrarium.athena.api.client.utils.NullableEnumMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.BlockModelPart;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,7 +23,7 @@ public record AthenaModelPart(
 ) implements BlockModelPart {
 
     @Override
-    public @NotNull RenderType getRenderType(@NotNull BlockState state) {
+    public @NotNull ChunkSectionLayer getRenderType(@NotNull BlockState state) {
         return this.parent.getRenderType(state);
     }
 

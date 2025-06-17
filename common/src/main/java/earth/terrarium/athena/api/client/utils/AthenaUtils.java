@@ -3,7 +3,7 @@ package earth.terrarium.athena.api.client.utils;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.logging.LogUtils;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.GsonHelper;
@@ -17,12 +17,14 @@ public final class AthenaUtils {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     @Nullable
-    public static RenderType renderTypeFromJson(JsonObject object) {
-        return switch (GsonHelper.getAsString(object, "render_type", "")) {
-            case "solid" -> RenderType.solid();
-            case "cutout" -> RenderType.cutout();
-            case "cutout_mipped" -> RenderType.cutoutMipped();
-            case "translucent" -> RenderType.translucent();
+    public static ChunkSectionLayer layerFromJson(JsonObject object) {
+        var renderType = GsonHelper.getAsString(object, "render_type", "");
+        var layerType = GsonHelper.getAsString(object, "layer_type", renderType);
+        return switch (layerType) {
+            case "solid" -> ChunkSectionLayer.SOLID;
+            case "cutout" -> ChunkSectionLayer.CUTOUT;
+            case "cutout_mipped" -> ChunkSectionLayer.CUTOUT_MIPPED;
+            case "translucent" -> ChunkSectionLayer.TRANSLUCENT;
             default -> null;
         };
     }
