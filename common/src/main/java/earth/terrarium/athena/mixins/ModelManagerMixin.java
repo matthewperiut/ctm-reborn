@@ -17,11 +17,13 @@ public class ModelManagerMixin {
     // Force load our definitions before loading the vanilla ones
     @WrapMethod(method = "reload")
     private CompletableFuture<Void> wrapReload(
+            PreparableReloadListener.SharedState sharedState,
+            Executor executor,
             PreparableReloadListener.PreparationBarrier preparationBarrier,
-            ResourceManager resourceManager, Executor executor, Executor executor2,
+            Executor executor2,
             Operation<CompletableFuture<Void>> original
     ) {
-        return AthenaResourceLoader.INSTANCE.reload(preparationBarrier, resourceManager, executor, executor2)
-                .thenCompose(v -> original.call(preparationBarrier, resourceManager, executor, executor2));
+        return AthenaResourceLoader.INSTANCE.reload(sharedState, executor, preparationBarrier, executor2)
+                .thenCompose(v -> original.call(sharedState, executor, preparationBarrier, executor2));
     }
 }
