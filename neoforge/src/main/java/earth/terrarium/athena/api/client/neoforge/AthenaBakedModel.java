@@ -37,15 +37,29 @@ public class AthenaBakedModel implements BlockStateModel {
         this.model = model;
         this.textures = this.model.getTextures(function);
         this.attributes = model.getAttributes();
-        //noinspection deprecation
-        this.part = new Part(attributes.getLayer() != null ? attributes.getLayer() : this.model.getLayerType());
+        this.part = new Part(this.attributes.getLayer());
     }
 
     @Override
     public void collectParts(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull RandomSource random, @NotNull List<BlockModelPart> parts) {
-        WrappedGetter getter = new WrappedGetter(level);
-        final NullableEnumMap<Direction, Map<Direction, List<AthenaQuad>>> quads = new NullableEnumMap<>(Direction.class);
-        Map<Direction, List<AthenaQuad>> nonCullQuads = new HashMap<>();
+        parts.add(new AthenaModelPart(
+                this.part,
+                this.createGeometryKey(level, pos, state, random),
+                this.textures,
+                this.attributes.getTint()
+        ));
+    }
+
+    @Override
+    public void collectParts(@NotNull RandomSource arg, @NotNull List<BlockModelPart> list) {
+        list.add(this.part);
+    }
+
+    @Override
+    public @NotNull NullableEnumMap<Direction, Map<Direction, List<AthenaQuad>>> createGeometryKey(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull RandomSource random) {
+        var getter = new WrappedGetter(level);
+        var quads = new NullableEnumMap<Direction, Map<Direction, List<AthenaQuad>>>(Direction.class);
+        var nonCullQuads = new HashMap<Direction, List<AthenaQuad>>();
         for (Direction direction : DIRECTIONS) {
             List<AthenaQuad> culledQuads = new ArrayList<>();
             List<AthenaQuad> unculledQuads = new ArrayList<>();
@@ -60,12 +74,8 @@ public class AthenaBakedModel implements BlockStateModel {
             nonCullQuads.put(direction, unculledQuads);
         }
         quads.put(null, nonCullQuads);
-        parts.add(new AthenaModelPart(this.part, quads, this.textures, this.attributes.getTint()));
-    }
 
-    @Override
-    public void collectParts(@NotNull RandomSource arg, @NotNull List<BlockModelPart> list) {
-        list.add(this.part);
+        return quads;
     }
 
     @Override

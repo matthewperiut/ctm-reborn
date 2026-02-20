@@ -1,7 +1,7 @@
 package earth.terrarium.athena.api.client.models;
 
 import dev.architectury.injectables.annotations.ExpectPlatform;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Contract;
 
 public class FactoryManager {
@@ -13,7 +13,7 @@ public class FactoryManager {
      */
     @Contract(pure = true)
     @ExpectPlatform
-    public static void register(ResourceLocation id, AthenaModelFactory factory) {
+    public static void register(Identifier id, AthenaModelFactory factory) {
         throw new AssertionError();
     }
 }

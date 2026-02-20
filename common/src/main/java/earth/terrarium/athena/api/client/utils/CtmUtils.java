@@ -11,7 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.block.Block;
@@ -23,7 +23,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
-import java.util.function.Function;
 
 public final class CtmUtils {
 
@@ -45,15 +44,7 @@ public final class CtmUtils {
     }
 
     public static Material blockMat(String id) {
-        return new Material(TextureAtlas.LOCATION_BLOCKS, ResourceLocation.parse(id));
-    }
-
-    public static <I, O> O tryParse(I input, Function<I, O> parser) {
-        try {
-            return parser.apply(input);
-        } catch (Exception e) {
-            return null;
-        }
+        return new Material(TextureAtlas.LOCATION_BLOCKS, Identifier.parse(id));
     }
 
     public static Rotation getPillarRotation(Direction.Axis axis, Direction direction) {
@@ -132,7 +123,7 @@ public final class CtmUtils {
 
     private static BiPredicate<BlockState, BlockState> parseStateCondition(JsonObject json) {
         Optional<Block> blockOpt = Optional.ofNullable(GsonHelper.getAsString(json, "block", null))
-                .map(ResourceLocation::tryParse)
+                .map(Identifier::tryParse)
                 .flatMap(BuiltInRegistries.BLOCK::getOptional);
         //don't connect to defaulted fallback (air)
         if (blockOpt.isEmpty()) return FALSE;
@@ -164,7 +155,7 @@ public final class CtmUtils {
     }
 
     private static BiPredicate<BlockState, BlockState> parseTagCondition(JsonObject json) {
-        TagKey<Block> tag = TagKey.create(Registries.BLOCK, ResourceLocation.tryParse(json.get("tag").getAsString()));
+        TagKey<Block> tag = TagKey.create(Registries.BLOCK, Identifier.tryParse(json.get("tag").getAsString()));
         return (selfState, otherState) -> otherState.is(tag);
     }
 

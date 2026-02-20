@@ -47,7 +47,7 @@ public class AthenaBakedModel implements BlockStateModel, FabricBlockStateModel 
     }
 
     @Override
-    public void emitQuads(QuadEmitter emitter, BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random, Predicate<@Nullable Direction> cullTest) {
+    public void emitQuads(@NotNull QuadEmitter emitter, @NotNull BlockAndTintGetter level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull RandomSource random, @NotNull Predicate<@Nullable Direction> cullTest) {
         WrappedGetter getter = new WrappedGetter(level);
         for (Direction value : DIRECTIONS) {
             emitQuads(emitter, value, model.getQuads(getter, state, pos, value));
@@ -56,8 +56,6 @@ public class AthenaBakedModel implements BlockStateModel, FabricBlockStateModel 
 
     private void emitQuads(QuadEmitter emitter, @Nullable Direction side, List<AthenaQuad> quads) {
         var attributes = this.model.getAttributes();
-        //noinspection deprecation
-        var layer = attributes.getLayer() != null ? attributes.getLayer() : this.model.getLayerType();
 
         for (var sprite : quads) {
             TextureAtlasSprite texture = this.textures.get(sprite.sprite());
@@ -65,7 +63,7 @@ public class AthenaBakedModel implements BlockStateModel, FabricBlockStateModel 
                 continue;
             }
             emitter.square(side, sprite.left(), sprite.bottom(), sprite.right(), sprite.top(), sprite.depth());
-            emitter.renderLayer(layer);
+            emitter.renderLayer(attributes.getLayer());
 
             int flag = MutableQuadView.BAKE_LOCK_UV;
 
@@ -98,7 +96,7 @@ public class AthenaBakedModel implements BlockStateModel, FabricBlockStateModel 
     }
 
     @Override
-    public void collectParts(RandomSource randomSource, List<BlockModelPart> list) {
+    public void collectParts(@NotNull RandomSource randomSource, List<BlockModelPart> list) {
         list.add(this.part);
     }
 

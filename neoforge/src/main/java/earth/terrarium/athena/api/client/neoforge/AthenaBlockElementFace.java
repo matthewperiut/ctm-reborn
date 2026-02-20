@@ -21,8 +21,7 @@ public class AthenaBlockElementFace {
             case TintProvider.Index(var index) -> tintIndex = index;
             case TintProvider.Static(var color) -> extraData = new ExtraFaceData(
                     color,
-                    ExtraFaceData.DEFAULT.blockLight(),
-                    ExtraFaceData.DEFAULT.skyLight(),
+                    ExtraFaceData.DEFAULT.lightEmission(),
                     ExtraFaceData.DEFAULT.ambientOcclusion()
             );
             case null -> {}

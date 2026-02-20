@@ -7,7 +7,8 @@ import earth.terrarium.athena.api.client.models.AthenaQuad;
 import earth.terrarium.athena.api.client.utils.AppearanceAndTintGetter;
 import earth.terrarium.athena.api.client.utils.CtmState;
 import earth.terrarium.athena.api.client.utils.CtmUtils;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import earth.terrarium.athena.impl.client.models.ctm.ConnectedTextureMap;
+import earth.terrarium.athena.impl.client.models.materials.MaterialStorage;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.Material;
@@ -27,15 +28,20 @@ public class ConnectedCarpetBlockModel implements AthenaBlockModel {
 
     public static final AthenaModelFactory FACTORY = new Factory();
 
-    private static final List<AthenaQuad> SIDE = List.of(new AthenaQuad(0, 0, 1f, 0.0625f, 0, Rotation.NONE, 0));
-    private static final List<AthenaQuad> CENTER_TOP = List.of(new AthenaQuad(1, 0, 1, 1, 0, Rotation.NONE, 0.9375f));
-    private static final List<AthenaQuad> CENTER_BOTTOM = List.of(new AthenaQuad(1, 0, 1, 1, 0, Rotation.NONE, 0.0625f));
+    private static final float PIXELS_15 = 15f / 16f;
+    private static final float PIXELS_1 = 1f / 16f;
 
-    private final Int2ObjectMap<Material> materials;
+    private static final List<AthenaQuad> SIDE = List.of(new AthenaQuad(0, 0, 1f, PIXELS_1, 0, Rotation.NONE, 0));
+    private static final List<AthenaQuad> CENTER_TOP = List.of(new AthenaQuad(1, 0, 1, 1, 0, Rotation.NONE, PIXELS_15));
+    private static final List<AthenaQuad> CENTER_BOTTOM = List.of(new AthenaQuad(1, 0, 1, 1, 0, Rotation.NONE, PIXELS_1));
+
+    private final MaterialStorage materials;
+    private final ConnectedTextureMap textures;
     private final BiPredicate<BlockState, BlockState> connectTo;
 
-    public ConnectedCarpetBlockModel(Int2ObjectMap<Material> materials, BiPredicate<BlockState, BlockState> connectTo) {
+    public ConnectedCarpetBlockModel(MaterialStorage materials, ConnectedTextureMap textures, BiPredicate<BlockState, BlockState> connectTo) {
         this.materials = materials;
+        this.textures = textures;
         this.connectTo = connectTo;
     }
 
@@ -45,50 +51,32 @@ public class ConnectedCarpetBlockModel implements AthenaBlockModel {
             return SIDE;
         }
 
-        final CtmState state = CtmState.from(level, blockState, pos, direction, CtmUtils.check(level, blockState, pos, direction, connectTo));
-
-        if (state.allTrue()) {
-            return direction == Direction.UP ? CENTER_TOP : CENTER_BOTTOM;
-        }
-
-        final float depth = direction == Direction.UP ? 0.9375f : 0.0625f;
-
-        return List.of(
-                AthenaQuad.withState(state.up(), state.left(), state.upLeft(), 0, 0.5f, 1f, 0.5f, depth),
-                AthenaQuad.withState(state.up(), state.right(), state.upRight(), 0.5f, 1f, 1f, 0.5f, depth),
-                AthenaQuad.withState(state.down(), state.left(), state.downLeft(), 0, 0.5f, 0.5f, 0f, depth),
-                AthenaQuad.withState(state.down(), state.right(), state.downRight(), 0.5f, 1f, 0.5f, 0f, depth)
+        return this.textures.getQuads(
+                direction,
+                CtmState.from(level, blockState, pos, direction, CtmUtils.check(level, blockState, pos, direction, connectTo)),
+                direction == Direction.UP ? PIXELS_15 : PIXELS_1
         );
     }
 
     @Override
     public Map<Direction, List<AthenaQuad>> getDefaultQuads(Direction direction) {
         if (direction == null) return Map.of();
-        final float depth = direction == Direction.UP ? 0.9375f : 0.0625f;
-        return Map.of(direction, List.of(
-                AthenaQuad.withState(false, false, false, 0, 0.5f, 1f, 0.5f, depth),
-                AthenaQuad.withState(false, false, false, 0.5f, 1f, 1f, 0.5f, depth),
-                AthenaQuad.withState(false, false, false, 0, 0.5f, 0.5f, 0f, depth),
-                AthenaQuad.withState(false, false, false, 0.5f, 1f, 0.5f, 0f, depth)
-        ));
+        return this.textures.getDefaultQuads(direction, CtmState.ALL_TRUE, direction == Direction.UP ? PIXELS_15 : PIXELS_1);
     }
 
     @Override
     public Int2ObjectMap<TextureAtlasSprite> getTextures(Function<Material, TextureAtlasSprite> getter) {
-        Int2ObjectMap<TextureAtlasSprite> textures = new Int2ObjectArrayMap<>();
-        for (var entry : materials.int2ObjectEntrySet()) {
-            textures.put(entry.getIntKey(), getter.apply(entry.getValue()));
-        }
-        return textures;
+        return this.materials.resolve(getter);
     }
 
     private static class Factory implements AthenaModelFactory {
 
         @Override
         public Supplier<AthenaBlockModel> create(JsonObject json) {
-            final var materials = CtmUtils.parseCtmMaterials(GsonHelper.getAsJsonObject(json, "ctm_textures"));
+            var materials = new MaterialStorage();
+            var textures = ConnectedTextureMap.of(materials, List.of(Direction.values()), GsonHelper.getNonNull(json, "ctm_textures"));
             BiPredicate<BlockState, BlockState> conditions = CtmUtils.parseCondition(json);
-            return () -> new ConnectedCarpetBlockModel(materials, conditions);
+            return () -> new ConnectedCarpetBlockModel(materials, textures, conditions);
         }
     }
 }

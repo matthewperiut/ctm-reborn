@@ -26,7 +26,7 @@ public class ForgeAthenaUtils {
         return UnbakedElementsHelper.bakeElements(
                 List.of(element),
                 mat -> sprite,
-                BlockModelRotation.X0_Y0
+                BlockModelRotation.IDENTITY
         );
     }
 

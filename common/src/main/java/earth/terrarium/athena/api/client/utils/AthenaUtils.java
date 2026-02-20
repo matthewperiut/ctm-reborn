@@ -23,7 +23,6 @@ public final class AthenaUtils {
         return switch (layerType) {
             case "solid" -> ChunkSectionLayer.SOLID;
             case "cutout" -> ChunkSectionLayer.CUTOUT;
-            case "cutout_mipped" -> ChunkSectionLayer.CUTOUT_MIPPED;
             case "translucent" -> ChunkSectionLayer.TRANSLUCENT;
             default -> null;
         };

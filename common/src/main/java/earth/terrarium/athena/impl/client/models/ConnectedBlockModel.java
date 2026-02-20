@@ -1,7 +1,6 @@
 package earth.terrarium.athena.impl.client.models;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
 import earth.terrarium.athena.api.client.models.AthenaBlockModel;
 import earth.terrarium.athena.api.client.models.AthenaModelAttributes;
 import earth.terrarium.athena.api.client.models.AthenaModelFactory;
@@ -10,15 +9,14 @@ import earth.terrarium.athena.api.client.utils.AppearanceAndTintGetter;
 import earth.terrarium.athena.api.client.utils.CtmState;
 import earth.terrarium.athena.api.client.utils.CtmUtils;
 import earth.terrarium.athena.impl.client.models.ctm.ConnectedTextureMap;
+import earth.terrarium.athena.impl.client.models.materials.MaterialStorage;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.block.state.BlockState;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -31,24 +29,14 @@ public class ConnectedBlockModel implements AthenaBlockModel {
 
     public static final AthenaModelFactory FACTORY = new Factory();
 
-    private final ConnectedTextureMap materials;
+    private final MaterialStorage materials;
+    private final ConnectedTextureMap textures;
     private final BiPredicate<BlockState, BlockState> connectTo;
     private final AthenaModelAttributes attributes;
 
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "1.21.11")
-    public ConnectedBlockModel(ConnectedTextureMap materials, BiPredicate<BlockState, BlockState> connectTo) {
-        this(materials, connectTo, AthenaModelAttributes.EMPTY);
-    }
-
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "1.21.11")
-    public ConnectedBlockModel(ConnectedTextureMap materials, BiPredicate<BlockState, BlockState> connectTo, ChunkSectionLayer layer) {
-        this(materials, connectTo, new AthenaModelAttributes(null, layer));
-    }
-
-    public ConnectedBlockModel(ConnectedTextureMap materials, BiPredicate<BlockState, BlockState> connectTo, AthenaModelAttributes attributes) {
+    public ConnectedBlockModel(MaterialStorage materials, ConnectedTextureMap textures, BiPredicate<BlockState, BlockState> connectTo, AthenaModelAttributes attributes) {
         this.materials = materials;
+        this.textures = textures;
         this.connectTo = connectTo;
         this.attributes = attributes;
     }
@@ -59,37 +47,22 @@ public class ConnectedBlockModel implements AthenaBlockModel {
             return List.of();
         }
 
-        final CtmState ctm = CtmState.from(level, state, pos, direction, CtmUtils.check(level, state, pos, direction, connectTo));
-
-        if (ctm.allTrue()) {
-            return List.of(AthenaQuad.withSprite(materials.getTexture(direction, 1)));
-        }
-
-        return List.of(
-                AthenaQuad.withState(materials, direction, ctm.up(), ctm.left(), ctm.upLeft(), 0, 0.5f, 1f, 0.5f),
-                AthenaQuad.withState(materials, direction, ctm.up(), ctm.right(), ctm.upRight(), 0.5f, 1f, 1f, 0.5f),
-                AthenaQuad.withState(materials, direction, ctm.down(), ctm.left(), ctm.downLeft(), 0, 0.5f, 0.5f, 0f),
-                AthenaQuad.withState(materials, direction, ctm.down(), ctm.right(), ctm.downRight(), 0.5f, 1f, 0.5f, 0f)
+        return this.textures.getQuads(
+                direction,
+                CtmState.from(level, state, pos, direction, CtmUtils.check(level, state, pos, direction, this.connectTo)),
+                0f
         );
     }
 
     @Override
     public Map<Direction, List<AthenaQuad>> getDefaultQuads(Direction direction) {
         if (direction == null) return Map.of();
-        return Map.of(
-            direction,
-            List.of(
-                    AthenaQuad.withState(materials, direction, false, false, false, 0, 0.5f, 1f, 0.5f),
-                    AthenaQuad.withState(materials, direction, false, false, false, 0.5f, 1f, 1f, 0.5f),
-                    AthenaQuad.withState(materials, direction, false, false, false, 0, 0.5f, 0.5f, 0f),
-                    AthenaQuad.withState(materials, direction, false, false, false, 0.5f, 1f, 0.5f, 0f)
-            )
-        );
+        return Map.of(direction, this.textures.getQuads(direction, CtmState.ALL_TRUE, 0f));
     }
 
     @Override
     public Int2ObjectMap<TextureAtlasSprite> getTextures(Function<Material, TextureAtlasSprite> getter) {
-        return materials.getTextures(getter);
+        return this.materials.resolve(getter);
     }
 
     @Override
@@ -101,40 +74,11 @@ public class ConnectedBlockModel implements AthenaBlockModel {
 
         @Override
         public Supplier<AthenaBlockModel> create(JsonObject json) {
-            ConnectedTextureMap materials = CtmUtils.tryParse(GsonHelper.getAsJsonObject(json, "ctm_textures"), Factory::parseDefaultMaterials);
-            if (materials == null) {
-                materials = CtmUtils.tryParse(GsonHelper.getAsJsonObject(json, "ctm_textures"), Factory::parseMaterials);
-            }
-            if (materials == null) {
-                throw new JsonSyntaxException("Expected either ctm_textures to have 5 entries for all textures or " +
-                        "have directional textures for each direction or to have some directions and a default textures object.");
-            }
-            final var materialsFinal = materials;
+            var materials = new MaterialStorage();
+            var textures = ConnectedTextureMap.of(materials, List.of(Direction.values()), GsonHelper.getNonNull(json, "ctm_textures"));
             BiPredicate<BlockState, BlockState> conditions = CtmUtils.parseCondition(json);
             var attributes = AthenaModelAttributes.fromJson(json);
-            return () -> new ConnectedBlockModel(materialsFinal, conditions, attributes);
-        }
-
-        private static ConnectedTextureMap parseMaterials(JsonObject json) {
-            final ConnectedTextureMap materials = new ConnectedTextureMap();
-            for (Direction direction : Direction.values()) {
-                if (GsonHelper.isStringValue(json, direction.getSerializedName())) {
-                    materials.put(direction, CtmUtils.blockMat(GsonHelper.getAsString(json, direction.getSerializedName())));
-                    continue;
-                }
-                final var directionMaterials = CtmUtils.parseCtmMaterials(GsonHelper.getAsJsonObject(json, direction.getSerializedName(), GsonHelper.getAsJsonObject(json, "default")));
-                materials.put(direction, directionMaterials);
-            }
-            return materials;
-        }
-
-        private static ConnectedTextureMap parseDefaultMaterials(JsonObject json) {
-            final var materials = CtmUtils.parseCtmMaterials(json);
-            final ConnectedTextureMap connectedTextureMap = new ConnectedTextureMap();
-            for (var direction : Direction.values()) {
-                connectedTextureMap.put(direction, materials);
-            }
-            return connectedTextureMap;
+            return () -> new ConnectedBlockModel(materials, textures, conditions, attributes);
         }
     }
 }

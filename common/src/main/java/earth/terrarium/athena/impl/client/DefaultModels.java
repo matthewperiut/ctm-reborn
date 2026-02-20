@@ -2,14 +2,14 @@ package earth.terrarium.athena.impl.client;
 
 import earth.terrarium.athena.api.client.models.FactoryManager;
 import earth.terrarium.athena.impl.client.models.*;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public class DefaultModels {
 
     public static final String MODID = "athena";
 
-    private static ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, name);
+    private static Identifier id(String name) {
+        return Identifier.fromNamespaceAndPath(MODID, name);
     }
 
     public static void init() {
