@@ -1,1 +1,1 @@
-- Support for `tint` in models, can either be a tint instead of an object of r,g,b,a for a static color
+- Update to 26.1

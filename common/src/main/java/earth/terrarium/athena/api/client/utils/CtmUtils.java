@@ -5,8 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.renderer.texture.TextureAtlas;
-import net.minecraft.client.resources.model.Material;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -44,7 +43,7 @@ public final class CtmUtils {
     }
 
     public static Material blockMat(String id) {
-        return new Material(TextureAtlas.LOCATION_BLOCKS, Identifier.parse(id));
+        return new Material(Identifier.parse(id));
     }
 
     public static Rotation getPillarRotation(Direction.Axis axis, Direction direction) {

@@ -4,9 +4,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import net.minecraft.client.renderer.texture.TextureAtlas;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.Material;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.resources.Identifier;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,7 +17,7 @@ public class MaterialStorage {
     private final AtomicInteger id = new AtomicInteger(0);
 
     public int put(String material) {
-        return this.put(new Material(TextureAtlas.LOCATION_BLOCKS, Identifier.parse(material)));
+        return this.put(new Material(Identifier.parse(material)));
     }
 
     public int put(Material material) {
@@ -34,8 +32,8 @@ public class MaterialStorage {
         return id;
     }
 
-    public Int2ObjectMap<TextureAtlasSprite> resolve(Function<Material, TextureAtlasSprite> getter) {
-        Int2ObjectMap<TextureAtlasSprite> map = new Int2ObjectArrayMap<>();
+    public Int2ObjectMap<Material.Baked> resolve(Function<Material, Material.Baked> getter) {
+        Int2ObjectMap<Material.Baked> map = new Int2ObjectArrayMap<>();
         for (var entry : this.idToMat.int2ObjectEntrySet()) {
             map.put(entry.getIntKey(), getter.apply(entry.getValue()));
         }

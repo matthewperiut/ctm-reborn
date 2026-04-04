@@ -1,147 +1,77 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import dev.architectury.plugin.ArchitectPluginExtension
+import com.teamresourceful.publishing.GitHubPom
+import com.teamresourceful.publishing.javaPublishing
+import com.teamresourceful.utils.Platform
+import com.teamresourceful.utils.getPlatform
 import groovy.json.StringEscapeUtils
-import net.fabricmc.loom.api.LoomGradleExtensionAPI
-import net.fabricmc.loom.task.RemapJarTask
 
 plugins {
     java
-    id("com.teamresourceful.resourcefulgradle") version "0.0.+"
-    id("dev.architectury.loom") version "1.13-SNAPSHOT" apply false
-    id("architectury-plugin") version "3.4-SNAPSHOT"
-    id("com.github.johnrengelman.shadow") version "7.1.2" apply false
     id("maven-publish")
+    alias(libs.plugins.resourceful.gradle)
+    alias(libs.plugins.resourceful.minecraft) apply false
 }
 
-architectury {
-    val minecraftVersion: String by project
-    minecraft = minecraftVersion
-}
 
 subprojects {
-    apply(plugin = "dev.architectury.loom")
-    apply(plugin = "architectury-plugin")
-    apply(plugin = "com.github.johnrengelman.shadow")
     apply(plugin = "maven-publish")
 
-    val minecraftVersion: String by project
-    val modLoader = project.name
-    val modId = rootProject.name
-    val isCommon = modLoader == rootProject.projects.common.name
-    val loom: LoomGradleExtensionAPI by project
+    val platform = getPlatform()
 
-    base {
-        archivesName.set("$modId-$modLoader-$minecraftVersion")
+    when (platform) {
+        Platform.COMMON -> apply(plugin = "com.teamresourceful.plugins.minecraft-platform-common")
+        Platform.FABRIC -> apply(plugin = "com.teamresourceful.plugins.minecraft-platform-fabric")
+        Platform.NEOFORGE -> apply(plugin = "com.teamresourceful.plugins.minecraft-platform-neoforge")
     }
 
-    loom.silentMojangMappingsLicense()
+    if (platform != Platform.COMMON) {
+        tasks.withType<JavaCompile> {
+            val serviceArgs = listOf(
+                "-Xplugin:ServicePlugin",
+                "--service-plugin-platform=$platform",
+            )
+
+            options.encoding = "UTF-8"
+            options.compilerArgs.add(serviceArgs.joinToString(separator = " "))
+        }
+    }
 
     repositories {
-        maven(url = "https://maven.architectury.dev/")
-        maven(url = "https://maven.minecraftforge.net/")
-        maven(url = "https://maven.neoforged.net/releases/")
-        maven(url = "https://maven.msrandom.net/repository/root")
-        maven(url = "https://maven.teamresourceful.com/repository/maven-public/")
+        maven("https://prmaven.neoforged.net/NeoForge/pr2879")
     }
 
     dependencies {
-        "minecraft"("::$minecraftVersion")
-        "mappings"(loom.officialMojangMappings())
-    }
-
-    java {
-        withSourcesJar()
-    }
-
-    tasks.jar {
-        archiveClassifier.set("dev")
-    }
-
-    tasks.processResources {
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        filesMatching(listOf("META-INF/neoforge.mods.toml", "fabric.mod.json")) {
-            expand("version" to project.version)
+        if (platform != Platform.COMMON) {
+            annotationProcessor(rootProject.libs.service.plugin)
         }
     }
 
-    if (!isCommon) {
-        configure<ArchitectPluginExtension> {
-            platformSetupLoomIde()
-        }
+    javaPublishing {
+        artifactId = "${rootProject.name}-${platform.name}-${rootProject.libs.versions.minecraft.get()}".lowercase()
 
-        val shadowCommon by configurations.creating
+        pom = GitHubPom(
+            "Athena $platform",
+            "A multiplatform baked model library for Minecraft mods",
+            "MIT",
+            "https://github.com/terrarium-earth/Athena"
+        )
 
-        tasks {
-            "shadowJar"(ShadowJar::class) {
-                archiveClassifier.set("dev-shadow")
-                configurations = listOf(shadowCommon)
-            }
-
-            "remapJar"(RemapJarTask::class) {
-                dependsOn("shadowJar")
-                inputFile.set(named<ShadowJar>("shadowJar").flatMap { it.archiveFile })
-                archiveClassifier.set(null as String?)
-            }
-        }
-    } else {
-        tasks.named<RemapJarTask>("remapJar") {
-            archiveClassifier.set(null as String?)
-        }
-    }
-
-    publishing {
-        publications {
-            create<MavenPublication>("maven") {
-                artifactId = "$modId-$modLoader-$minecraftVersion"
-                from(components["java"])
-
-                pom {
-                    name.set("Athena $modLoader")
-                    url.set("https://github.com/terrarium-earth/$modId")
-
-                    scm {
-                        connection.set("git:https://github.com/terrarium-earth/$modId.git")
-                        developerConnection.set("git:https://github.com/terrarium-earth/$modId.git")
-                        url.set("https://github.com/terrarium-earth/$modId")
-                    }
-
-                    licenses {
-                        license {
-                            name.set("MIT")
-                        }
-                    }
-                }
-            }
-        }
-        repositories {
-            maven {
-                setUrl("https://maven.teamresourceful.com/repository/terrarium/")
-                credentials {
-                    username = System.getenv("MAVEN_USER")
-                    password = System.getenv("MAVEN_PASS")
-                }
-            }
-        }
+        repo = "https://maven.teamresourceful.com/repository/terrarium/"
     }
 }
 
 resourcefulGradle {
     templates {
         register("embed") {
-            val minecraftVersion: String by project
-            val version: String by project
             val changelog: String = file("changelog.md").readText(Charsets.UTF_8)
-            val fabricLink: String? = System.getenv("FABRIC_RELEASE_URL")
-            val neoforgeLink: String? = System.getenv("NEOFORGE_RELEASE_URL")
 
-            source.set(file("templates/embed.json.template"))
-            injectedValues.set(mapOf(
-                    "minecraft" to minecraftVersion,
-                    "version" to version,
-                    "changelog" to StringEscapeUtils.escapeJava(changelog),
-                    "fabric_link" to fabricLink,
-                    "neoforge_link" to neoforgeLink,
-            ))
+            source = file("templates/embed.json.template")
+            injectedValues = mapOf(
+                "version" to version,
+                "minecraft" to rootProject.libs.versions.minecraft.get(),
+                "fabric_link" to System.getenv("FABRIC_RELEASE_URL"),
+                "neoforge_link" to System.getenv("NEOFORGE_RELEASE_URL"),
+                "changelog" to StringEscapeUtils.escapeJava(changelog),
+            )
         }
     }
 }

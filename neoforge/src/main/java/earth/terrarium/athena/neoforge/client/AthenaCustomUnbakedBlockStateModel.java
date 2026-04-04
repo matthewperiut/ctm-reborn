@@ -4,10 +4,10 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
-import earth.terrarium.athena.api.client.models.neoforge.FactoryManagerImpl;
 import earth.terrarium.athena.impl.client.DefaultModels;
+import earth.terrarium.athena.impl.platform.ModelLoaderServiceNeoForgeImpl;
 import net.minecraft.Optionull;
-import net.minecraft.client.renderer.block.model.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.level.block.Blocks;
@@ -25,7 +25,7 @@ public record AthenaCustomUnbakedBlockStateModel(
             Function.identity()
     ));
     public static final MapCodec<AthenaCustomUnbakedBlockStateModel> CODEC = Codec.mapPair(
-            FactoryManagerImpl.CODEC.fieldOf(DefaultModels.MODID + ":loader"), OBJECT_CODEC
+            ModelLoaderServiceNeoForgeImpl.CODEC.fieldOf(DefaultModels.MODID + ":loader"), OBJECT_CODEC
     ).flatXmap(
             it -> Optionull.mapOrElse(
                     it.getFirst().loadModel(it.getSecond()),

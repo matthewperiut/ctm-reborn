@@ -4,24 +4,24 @@ import earth.terrarium.athena.api.client.models.AthenaBlockModel;
 import earth.terrarium.athena.api.client.models.AthenaModelAttributes;
 import earth.terrarium.athena.api.client.models.AthenaQuad;
 import earth.terrarium.athena.api.client.utils.NullableEnumMap;
+import earth.terrarium.athena.impl.internal.BlockStateModelMaterialInfo;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.BlockModelPart;
-import net.minecraft.client.renderer.block.model.BlockStateModel;
-import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.Material;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.data.AtlasIds;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public class AthenaBakedModel implements BlockStateModel {
@@ -29,29 +29,31 @@ public class AthenaBakedModel implements BlockStateModel {
     private static final Direction[] DIRECTIONS = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST, Direction.UP, Direction.DOWN};
 
     private final AthenaBlockModel model;
-    private final Int2ObjectMap<TextureAtlasSprite> textures;
+    private final Int2ObjectMap<Material.Baked> materials;
     private final AthenaModelAttributes attributes;
-    private final BlockModelPart part;
+    private final BlockStateModelMaterialInfo info;
+    private final BlockStateModelPart part;
 
-    public AthenaBakedModel(AthenaBlockModel model, Function<Material, TextureAtlasSprite> function) {
+    public AthenaBakedModel(AthenaBlockModel model, Function<Material, Material.Baked> function) {
         this.model = model;
-        this.textures = this.model.getTextures(function);
+        this.materials = this.model.getTextures(function);
         this.attributes = model.getAttributes();
-        this.part = new Part(this.attributes.getLayer());
+        this.info = new BlockStateModelMaterialInfo(this.materials);
+        this.part = new Part();
     }
 
     @Override
-    public void collectParts(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull RandomSource random, @NotNull List<BlockModelPart> parts) {
+    public void collectParts(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull RandomSource random, @NotNull List<BlockStateModelPart> parts) {
         parts.add(new AthenaModelPart(
                 this.part,
                 this.createGeometryKey(level, pos, state, random),
-                this.textures,
+                this.materials,
                 this.attributes.getTint()
         ));
     }
 
     @Override
-    public void collectParts(@NotNull RandomSource arg, @NotNull List<BlockModelPart> list) {
+    public void collectParts(@NotNull RandomSource arg, @NotNull List<BlockStateModelPart> list) {
         list.add(this.part);
     }
 
@@ -79,44 +81,39 @@ public class AthenaBakedModel implements BlockStateModel {
     }
 
     @Override
-    public @NotNull TextureAtlasSprite particleIcon() {
-        return this.part.particleIcon();
+    public @NotNull Material.Baked particleMaterial() {
+        return this.part.particleMaterial();
     }
 
-    private class Part implements BlockModelPart {
+    @Override
+    public @BakedQuad.MaterialFlags int materialFlags() {
+        return this.part.materialFlags();
+    }
+
+    private class Part implements BlockStateModelPart {
 
         private final NullableEnumMap<Direction, List<BakedQuad>> defaultQuads = new NullableEnumMap<>(Direction.class);
-        private final ChunkSectionLayer layerType;
-
-        public Part(ChunkSectionLayer layerType) {
-            this.layerType = layerType;
-        }
 
         @Override
-        public @NotNull List<BakedQuad> getQuads(@Nullable Direction arg) {
-            var quads = this.defaultQuads.get(arg);
+        public @NotNull List<BakedQuad> getQuads(@Nullable Direction direction) {
+            var quads = this.defaultQuads.get(direction);
             if (quads == null) {
                 quads = new ArrayList<>();
 
-                var defaults = AthenaBakedModel.this.model.getDefaultQuads(arg);
+                var defaults = AthenaBakedModel.this.model.getDefaultQuads(direction);
                 var tint = AthenaBakedModel.this.attributes.getTint();
-                var textures = AthenaBakedModel.this.textures;
+                var materials = AthenaBakedModel.this.materials;
                 for (var entry : defaults.entrySet()) {
                     for (var quad : entry.getValue()) {
-                        TextureAtlasSprite sprite = textures.get(quad.sprite());
-                        if (sprite == null) continue;
-                        quads.addAll(ForgeAthenaUtils.bakeQuad(quad, entry.getKey(), sprite, tint));
+                        var material = materials.get(quad.sprite());
+                        if (material == null) continue;
+                        quads.add(ForgeAthenaUtils.bakeQuad(quad, entry.getKey(), material, tint));
                     }
                 }
 
-                this.defaultQuads.put(arg, quads);
+                this.defaultQuads.put(direction, quads);
             }
             return quads;
-        }
-
-        @Override
-        public @NotNull ChunkSectionLayer getRenderType(@NotNull BlockState state) {
-            return Objects.requireNonNullElseGet(this.layerType, () -> BlockModelPart.super.getRenderType(state));
         }
 
         @Override
@@ -125,11 +122,13 @@ public class AthenaBakedModel implements BlockStateModel {
         }
 
         @Override
-        public @NotNull TextureAtlasSprite particleIcon() {
-            if (AthenaBakedModel.this.textures.containsKey(0)) {
-                return AthenaBakedModel.this.textures.get(0);
-            }
-            return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.BLOCKS).missingSprite();
+        public @NotNull Material.Baked particleMaterial() {
+            return AthenaBakedModel.this.info.getParticle();
+        }
+
+        @Override
+        public @BakedQuad.MaterialFlags int materialFlags() {
+            return AthenaBakedModel.this.info.getFlags();
         }
     }
 }

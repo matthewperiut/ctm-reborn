@@ -11,7 +11,7 @@ import earth.terrarium.athena.api.client.utils.AthenaUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.Material;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.GsonHelper;
@@ -33,12 +33,6 @@ public class PaneConnectedBlockModel implements AthenaBlockModel {
 
     private final Int2ObjectMap<Material> materials;
     private final boolean connectCorners;
-
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "1.22")
-    public PaneConnectedBlockModel(Int2ObjectMap<Material> materials) {
-        this(materials, false);
-    }
 
     public PaneConnectedBlockModel(Int2ObjectMap<Material> materials, boolean connectCorners) {
         this.materials = materials;
@@ -96,8 +90,8 @@ public class PaneConnectedBlockModel implements AthenaBlockModel {
     }
 
     @Override
-    public Int2ObjectMap<TextureAtlasSprite> getTextures(Function<Material, TextureAtlasSprite> getter) {
-        final var textures = new Int2ObjectArrayMap<TextureAtlasSprite>();
+    public Int2ObjectMap<Material.Baked> getTextures(Function<Material, Material.Baked> getter) {
+        final var textures = new Int2ObjectArrayMap<Material.Baked>();
         for (var entry : this.materials.int2ObjectEntrySet()) {
             textures.put(entry.getIntKey(), getter.apply(entry.getValue()));
         }

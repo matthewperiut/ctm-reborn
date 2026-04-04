@@ -10,8 +10,7 @@ import earth.terrarium.athena.api.client.utils.CtmUtils;
 import earth.terrarium.athena.impl.client.models.ctm.ConnectedTextureMap;
 import earth.terrarium.athena.impl.client.models.materials.MaterialStorage;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.Material;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.GsonHelper;
@@ -65,7 +64,7 @@ public class ConnectedCarpetBlockModel implements AthenaBlockModel {
     }
 
     @Override
-    public Int2ObjectMap<TextureAtlasSprite> getTextures(Function<Material, TextureAtlasSprite> getter) {
+    public Int2ObjectMap<Material.Baked> getTextures(Function<Material, Material.Baked> getter) {
         return this.materials.resolve(getter);
     }
 

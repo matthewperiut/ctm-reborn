@@ -2,8 +2,8 @@ package earth.terrarium.athena.mixins.neoforge;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import earth.terrarium.athena.api.client.models.neoforge.FactoryManagerImpl;
-import net.minecraft.client.renderer.block.model.BlockStateModel;
+import earth.terrarium.athena.impl.platform.ModelLoaderServiceNeoForgeImpl;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.resources.Identifier;
@@ -15,10 +15,10 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class ModelBakeryMixin {
 
     @WrapOperation(
-            method = "method_68018",
+            method = "lambda$bakeModels$0",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/block/model/BlockStateModel$UnbakedRoot;bake(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/client/resources/model/ModelBaker;)Lnet/minecraft/client/renderer/block/model/BlockStateModel;"
+                    target = "Lnet/minecraft/client/renderer/block/dispatch/BlockStateModel$UnbakedRoot;bake(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/client/resources/model/ModelBaker;)Lnet/minecraft/client/renderer/block/dispatch/BlockStateModel;"
             )
     )
     private static BlockStateModel stitch$loadModel(
@@ -26,8 +26,8 @@ public abstract class ModelBakeryMixin {
             BlockState blockState,
             ModelBaker baker, Operation<BlockStateModel> original
     ) {
-        for (Identifier type : FactoryManagerImpl.getTypes()) {
-            BlockStateModel.UnbakedRoot model = FactoryManagerImpl.get(type).loadModel(blockState);
+        for (Identifier type : ModelLoaderServiceNeoForgeImpl.getTypes()) {
+            BlockStateModel.UnbakedRoot model = ModelLoaderServiceNeoForgeImpl.get(type).loadModel(blockState);
             if (model != null) {
                 instance = model;
                 break;

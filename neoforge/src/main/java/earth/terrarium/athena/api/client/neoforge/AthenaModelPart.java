@@ -4,12 +4,10 @@ import earth.terrarium.athena.api.client.models.AthenaQuad;
 import earth.terrarium.athena.api.client.models.TintProvider;
 import earth.terrarium.athena.api.client.utils.NullableEnumMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.BlockModelPart;
-import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,25 +18,20 @@ import java.util.Map;
 
 @ApiStatus.Internal
 public record AthenaModelPart(
-        @NotNull BlockModelPart parent,
+        @NotNull BlockStateModelPart parent,
         @NotNull NullableEnumMap<Direction, Map<Direction, List<AthenaQuad>>> quads,
-        @NotNull Int2ObjectMap<TextureAtlasSprite> textures,
+        @NotNull Int2ObjectMap<Material.Baked> materials,
         @Nullable TintProvider tint
-) implements BlockModelPart {
-
-    @Override
-    public @NotNull ChunkSectionLayer getRenderType(@NotNull BlockState state) {
-        return this.parent.getRenderType(state);
-    }
+) implements BlockStateModelPart {
 
     @Override
     public @NotNull List<BakedQuad> getQuads(@Nullable Direction direction) {
         List<BakedQuad> quads = new ArrayList<>();
         this.quads.getOrDefault(direction, Map.of()).forEach((dir, quadList) -> {
             for (var quad : quadList) {
-                TextureAtlasSprite sprite = textures.get(quad.sprite());
-                if (sprite == null) continue;
-                quads.addAll(ForgeAthenaUtils.bakeQuad(quad, dir, sprite, this.tint));
+                var material = materials.get(quad.sprite());
+                if (material == null) continue;
+                quads.add(ForgeAthenaUtils.bakeQuad(quad, dir, material, this.tint));
             }
         });
         return quads;
@@ -50,7 +43,12 @@ public record AthenaModelPart(
     }
 
     @Override
-    public @NotNull TextureAtlasSprite particleIcon() {
-        return this.parent.particleIcon();
+    public Material.@NotNull Baked particleMaterial() {
+        return this.parent.particleMaterial();
+    }
+
+    @Override
+    public @BakedQuad.MaterialFlags int materialFlags() {
+        return this.parent.materialFlags();
     }
 }

@@ -3,7 +3,7 @@ package earth.terrarium.athena.api.client.models;
 import earth.terrarium.athena.api.client.utils.AppearanceAndTintGetter;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.Material;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
@@ -26,7 +26,7 @@ public interface AthenaBlockModel {
         return Map.of();
     }
 
-    Int2ObjectMap<TextureAtlasSprite> getTextures(Function<Material, TextureAtlasSprite> getter);
+    Int2ObjectMap<Material.Baked> getTextures(Function<Material, Material.Baked> getter);
 
     default AthenaModelAttributes getAttributes() {
         return AthenaModelAttributes.EMPTY;

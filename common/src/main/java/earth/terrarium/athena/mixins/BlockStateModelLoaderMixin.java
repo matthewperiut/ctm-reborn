@@ -18,12 +18,12 @@ import java.util.function.Function;
 @Mixin(BlockStateModelLoader.class)
 public class BlockStateModelLoaderMixin {
 
-    @Inject(method = "method_65721", at = @At("HEAD"))
+    @Inject(method = "lambda$loadBlockStates$1", at = @At("HEAD"))
     private static void onBlockStatesLoad(Function<?, ?> function, Executor executor, Map<?, ?> map, CallbackInfoReturnable<CompletionStage<?>> cir) {
         AthenaResourceLoader.clearBlockstateData();
     }
 
-    @Inject(method = "method_65720", at = @At(value = "INVOKE", target = "Lcom/mojang/serialization/Codec;parse(Lcom/mojang/serialization/DynamicOps;Ljava/lang/Object;)Lcom/mojang/serialization/DataResult;"))
+    @Inject(method = "lambda$loadBlockStates$2", at = @At(value = "INVOKE", target = "Lcom/mojang/serialization/Codec;parse(Lcom/mojang/serialization/DynamicOps;Ljava/lang/Object;)Lcom/mojang/serialization/DataResult;"))
     private static void onBlockModelLoad(
             Map.Entry<?, ?> entry, Function<?, ?> function, CallbackInfoReturnable<BlockStateModelLoader.LoadedModels> cir,
             @Local Identifier id, @Local JsonElement jsonObject

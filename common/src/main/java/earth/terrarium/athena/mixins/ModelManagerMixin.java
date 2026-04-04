@@ -5,7 +5,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import earth.terrarium.athena.impl.loading.AthenaResourceLoader;
 import net.minecraft.client.resources.model.ModelManager;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
-import net.minecraft.server.packs.resources.ResourceManager;
 import org.spongepowered.asm.mixin.Mixin;
 
 import java.util.concurrent.CompletableFuture;
@@ -17,13 +16,13 @@ public class ModelManagerMixin {
     // Force load our definitions before loading the vanilla ones
     @WrapMethod(method = "reload")
     private CompletableFuture<Void> wrapReload(
-            PreparableReloadListener.SharedState sharedState,
-            Executor executor,
+            PreparableReloadListener.SharedState currentReload,
+            Executor taskExecutor,
             PreparableReloadListener.PreparationBarrier preparationBarrier,
-            Executor executor2,
+            Executor reloadExecutor,
             Operation<CompletableFuture<Void>> original
     ) {
-        return AthenaResourceLoader.INSTANCE.reload(sharedState, executor, preparationBarrier, executor2)
-                .thenCompose(v -> original.call(sharedState, executor, preparationBarrier, executor2));
+        return AthenaResourceLoader.INSTANCE.reload(currentReload, taskExecutor, preparationBarrier, reloadExecutor)
+                .thenCompose(v -> original.call(currentReload, taskExecutor, preparationBarrier, reloadExecutor));
     }
 }

@@ -4,9 +4,9 @@ rootProject.name = "athena"
 
 pluginManagement {
     repositories {
-        maven(url = "https://maven.architectury.dev/")
-        maven(url = "https://maven.minecraftforge.net/")
-        maven(url = "https://maven.resourcefulbees.com/repository/maven-public/")
+        maven("https://maven.fabricmc.net/")
+        maven("https://maven.architectury.dev/")
+        maven("https://maven.teamresourceful.com/repository/maven-public/")
         gradlePluginPortal()
     }
 }

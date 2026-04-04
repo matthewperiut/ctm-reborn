@@ -1,4 +1,4 @@
-package earth.terrarium.athena.api.client.models.neoforge;
+package earth.terrarium.athena.impl.platform;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -12,16 +12,17 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FactoryManagerImpl {
+public class ModelLoaderServiceNeoForgeImpl implements ModelLoaderService {
 
     public static final Codec<AthenaUnbakedModelLoader> CODEC = Identifier.CODEC.comapFlatMap(
-            it -> Optionull.mapOrElse(FactoryManagerImpl.get(it), DataResult::success, () -> DataResult.error(() -> "Unknown loader: " + it)),
+            it -> Optionull.mapOrElse(ModelLoaderServiceNeoForgeImpl.get(it), DataResult::success, () -> DataResult.error(() -> "Unknown loader: " + it)),
             AthenaUnbakedModelLoader::id
     );
 
     private static final Map<Identifier, AthenaUnbakedModelLoader> FACTORIES = new HashMap<>();
 
-    public static void register(Identifier type, AthenaModelFactory factory) {
+    @Override
+    public void register(Identifier type, AthenaModelFactory factory) {
         if (FACTORIES.containsKey(type)) {
             throw new IllegalArgumentException("Factory already registered for type: " + type);
         }

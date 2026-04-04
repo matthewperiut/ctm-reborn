@@ -1,4 +1,4 @@
-package earth.terrarium.athena.api.client.models.fabric;
+package earth.terrarium.athena.impl.platform;
 
 import earth.terrarium.athena.api.client.fabric.AthenaUnbakedModel;
 import earth.terrarium.athena.api.client.models.AthenaModelFactory;
@@ -8,11 +8,12 @@ import net.minecraft.resources.Identifier;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FactoryManagerImpl {
+public class ModelLoaderServiceFabricImpl implements ModelLoaderService {
 
     public static final Map<Identifier, AthenaUnbakedModelLoader> LOADERS = new HashMap<>();
 
-    public static void register(Identifier type, AthenaModelFactory factory) {
+    @Override
+    public void register(Identifier type, AthenaModelFactory factory) {
         LOADERS.put(type, new AthenaUnbakedModelLoader(type, factory, AthenaUnbakedModel::new));
     }
 }

@@ -1,19 +1,18 @@
 package earth.terrarium.athena.api.client.models;
 
-import dev.architectury.injectables.annotations.ExpectPlatform;
+import earth.terrarium.athena.impl.platform.ModelLoaderService;
 import net.minecraft.resources.Identifier;
-import org.jetbrains.annotations.Contract;
 
 public class FactoryManager {
+
+    private static final ModelLoaderService SERVICE = ModelLoaderService.create();
 
     /**
      * Registers a new model factory, which will be used to create models for the given json.
      * @param id The id of the model factory
      * @param factory The factory to use
      */
-    @Contract(pure = true)
-    @ExpectPlatform
     public static void register(Identifier id, AthenaModelFactory factory) {
-        throw new AssertionError();
+        SERVICE.register(id, factory);
     }
 }

@@ -12,7 +12,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: 21
+          java-version: 25
 
       - name: Setup Gradle Caches
         uses: actions/cache@v3
@@ -24,12 +24,11 @@ jobs:
       - name: Setup Gradle Wrapper
         run: chmod +x gradlew
 
-      - name: Get Version and Platform
+      - name: Get Properties
         id: properties
-        uses: christian-draeger/read-properties@1.1.1
-        with:
-          path: "./gradle.properties"
-          properties: "version enabledPlatforms minecraftVersion"
+        run: |
+          echo "version=$(grep -m1 "^version=" gradle.properties | cut -c 9-)" >> $GITHUB_OUTPUT
+          echo "mcVersion=$(grep -m1 "^minecraft = " gradle/libs.versions.toml | cut -c 14- | rev | cut -c 2- | rev)" >> $GITHUB_OUTPUT
 
       - name: Publish Release
         run: ./gradlew publish
@@ -39,7 +38,6 @@ jobs:
 
       - name: Upload NeoForge Releases (Curse/Modrinth/Github)
         id: neoforge_release
-        if: contains(steps.properties.outputs.enabledPlatforms, 'neoforge')
         uses: Kir-Antipov/mc-publish@v3.3.0
         with:
           curseforge-id: ${{ vars.CURSE_ID }}
@@ -54,12 +52,11 @@ jobs:
           version-type: release
           changelog-file: changelog.md
           loaders: neoforge
-          game-versions: ${{ steps.properties.outputs.minecraftVersion }}
+          game-versions: ${{ steps.properties.outputs.mcVersion }}
           version-resolver: exact
 
       - name: Upload Fabric Releases (Curse/Modrinth/Github)
         id: fabric_release
-        if: contains(steps.properties.outputs.enabledPlatforms, 'fabric')
         uses: Kir-Antipov/mc-publish@v3.3.0
         with:
           curseforge-id: ${{ vars.CURSE_ID }}
@@ -74,7 +71,7 @@ jobs:
           version-type: release
           changelog-file: changelog.md
           loaders: fabric
-          game-versions: ${{ steps.properties.outputs.minecraftVersion }}
+          game-versions: ${{ steps.properties.outputs.mcVersion }}
           version-resolver: exact
 
       - name: Generate Discord Embed
