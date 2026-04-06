@@ -2,11 +2,10 @@ package earth.terrarium.athena.mixins.neoforge;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import earth.terrarium.athena.impl.platform.ModelLoaderServiceNeoForgeImpl;
+import earth.terrarium.athena.api.client.models.FactoryManager;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ModelBakery;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,8 +25,8 @@ public abstract class ModelBakeryMixin {
             BlockState blockState,
             ModelBaker baker, Operation<BlockStateModel> original
     ) {
-        for (Identifier type : ModelLoaderServiceNeoForgeImpl.getTypes()) {
-            BlockStateModel.UnbakedRoot model = ModelLoaderServiceNeoForgeImpl.get(type).loadModel(blockState);
+        for (var loader : FactoryManager.loaders()) {
+            BlockStateModel.UnbakedRoot model = loader.loadModel(blockState);
             if (model != null) {
                 instance = model;
                 break;

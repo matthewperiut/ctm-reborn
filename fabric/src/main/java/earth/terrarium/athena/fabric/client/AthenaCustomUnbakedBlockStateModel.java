@@ -1,4 +1,4 @@
-package earth.terrarium.athena.neoforge.client;
+package earth.terrarium.athena.fabric.client;
 
 import com.google.gson.JsonObject;
 import com.mojang.serialization.Codec;
@@ -6,12 +6,13 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import earth.terrarium.athena.api.client.models.FactoryManager;
 import earth.terrarium.athena.impl.client.DefaultModels;
+import net.fabricmc.fabric.api.client.model.loading.v1.CustomUnbakedBlockStateModel;
 import net.minecraft.Optionull;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.resources.model.ModelBaker;
+import net.minecraft.client.resources.model.ResolvableModel;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.level.block.Blocks;
-import net.neoforged.neoforge.client.model.block.CustomUnbakedBlockStateModel;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
@@ -46,7 +47,7 @@ public record AthenaCustomUnbakedBlockStateModel(
     }
 
     @Override
-    public void resolveDependencies(@NotNull Resolver arg) {
+    public void resolveDependencies(@NotNull ResolvableModel.Resolver arg) {
 
     }
 }

@@ -23,7 +23,7 @@
   "entrypoints": {
     "client": [
       "earth.terrarium.athena.impl.client.DefaultModels::init",
-      "earth.terrarium.athena.api.client.fabric.AthenaFabricClient"
+      "earth.terrarium.athena.fabric.client.AthenaFabricClient"
     ]
   },
   "custom": {

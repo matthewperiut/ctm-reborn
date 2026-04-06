@@ -1,1 +1,2 @@
-- Update to 26.1
+- Added the ability to use "athena:athena" in fabric custom block state models
+- Unified loader registration, allowing you to retrieve loaders in FactoryManager

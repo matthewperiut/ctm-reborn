@@ -108,9 +108,6 @@ public class AthenaBakedModel implements BlockStateModel, FabricBlockStateModel 
 
         @Override
         public @NotNull List<BakedQuad> getQuads(@Nullable Direction direction) {
-            if (true) {
-                return List.of();
-            }
             if (!this.defaultQuads.containsKey(direction)) {
                 var quads = new ArrayList<BakedQuad>();
 
