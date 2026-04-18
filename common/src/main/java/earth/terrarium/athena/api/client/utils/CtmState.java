@@ -12,6 +12,7 @@ public record CtmState(
 ) {
 
     public static final CtmState ALL_TRUE = new CtmState(true, true, true, true, true, true, true, true);
+    public static final CtmState ALL_FALSE = new CtmState(false, false, false, false, false, false, false, false);
 
     public static CtmState from(AppearanceAndTintGetter level, BlockState state, BlockPos pos, Direction direction, ConnectionCheck check) {
         final BlockPos upPos = AthenaUtils.getFacingPos(pos, direction, AthenaUtils.UrMom.UP);

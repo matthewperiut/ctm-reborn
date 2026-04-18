@@ -10,6 +10,7 @@ import earth.terrarium.athena.api.client.utils.CtmUtils;
 import earth.terrarium.athena.impl.client.models.ctm.ConnectedTextureMap;
 import earth.terrarium.athena.impl.client.models.materials.MaterialStorage;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -59,8 +60,9 @@ public class ConnectedCarpetBlockModel implements AthenaBlockModel {
 
     @Override
     public Map<Direction, List<AthenaQuad>> getDefaultQuads(Direction direction) {
-        if (direction == null) return Map.of();
-        return this.textures.getDefaultQuads(direction, CtmState.ALL_TRUE, direction == Direction.UP ? PIXELS_15 : PIXELS_1);
+        if (direction == null) return Object2ObjectMaps.emptyMap();
+        if (direction.getAxis().isHorizontal()) return Object2ObjectMaps.singleton(direction, SIDE);
+        return this.textures.getDefaultQuads(direction, CtmState.ALL_FALSE, direction == Direction.UP ? PIXELS_15 : PIXELS_1);
     }
 
     @Override

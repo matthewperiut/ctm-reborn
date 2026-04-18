@@ -15,11 +15,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
@@ -120,8 +120,8 @@ public class AthenaBakedModel implements BlockStateModel, FabricBlockStateModel 
                     );
 
                     var atlases = Minecraft.getInstance().getAtlasManager();
-                    var itemFinder = atlases.getAtlasOrThrow(TextureAtlas.LOCATION_ITEMS).spriteFinder();
-                    var blockFinder = atlases.getAtlasOrThrow(TextureAtlas.LOCATION_BLOCKS).spriteFinder();
+                    var itemFinder = atlases.getAtlasOrThrow(AtlasIds.ITEMS).spriteFinder();
+                    var blockFinder = atlases.getAtlasOrThrow(AtlasIds.BLOCKS).spriteFinder();
 
                     mesh.forEach(view -> {
                         var finder = switch (view.atlas()) {

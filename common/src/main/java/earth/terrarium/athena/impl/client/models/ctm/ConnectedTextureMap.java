@@ -7,6 +7,7 @@ import com.mojang.serialization.DataResult;
 import earth.terrarium.athena.api.client.models.AthenaQuad;
 import earth.terrarium.athena.api.client.utils.CtmState;
 import earth.terrarium.athena.impl.client.models.materials.MaterialStorage;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import net.minecraft.core.Direction;
 import net.minecraft.util.GsonHelper;
 
@@ -40,7 +41,7 @@ public class ConnectedTextureMap {
     }
 
     public Map<Direction, List<AthenaQuad>> getDefaultQuads(Direction direction, CtmState state, float depth) {
-        return Map.of(direction, getQuads(direction, state, depth));
+        return Object2ObjectMaps.singleton(direction, getQuads(direction, state, depth));
     }
 
     public static ConnectedTextureMap of(MaterialStorage materials, Iterable<Direction> directions, JsonElement json) {

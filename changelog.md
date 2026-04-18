@@ -1,2 +1,1 @@
-- Added the ability to use "athena:athena" in fabric custom block state models
-- Unified loader registration, allowing you to retrieve loaders in FactoryManager
+- Fixed several issues where the default model quads would be incorrect

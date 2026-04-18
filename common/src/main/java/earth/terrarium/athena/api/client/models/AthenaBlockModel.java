@@ -2,7 +2,7 @@ package earth.terrarium.athena.api.client.models;
 
 import earth.terrarium.athena.api.client.utils.AppearanceAndTintGetter;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -23,7 +23,7 @@ public interface AthenaBlockModel {
      * @return The default quads for this model
      */
     default Map<Direction, List<AthenaQuad>> getDefaultQuads(@Nullable Direction direction) {
-        return Map.of();
+        return Object2ObjectMaps.emptyMap();
     }
 
     Int2ObjectMap<Material.Baked> getTextures(Function<Material, Material.Baked> getter);
