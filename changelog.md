@@ -1,1 +1,1 @@
-- Fixed several issues where the default model quads would be incorrect
+- Fixed vertex winding on neoforge
