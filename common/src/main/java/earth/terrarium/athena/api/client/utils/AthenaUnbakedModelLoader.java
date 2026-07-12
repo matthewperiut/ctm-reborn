@@ -35,7 +35,7 @@ public class AthenaUnbakedModelLoader {
     }
 
     public BlockStateModel bake(AthenaUnbakedModel model, @NonNull ModelBaker baker) {
-        return this.baker.apply(model.getModel(), material -> baker.materials().get(material, () -> "Athena: ?"));
+        return this.baker.apply(model.model(), material -> baker.materials().get(material, () -> "Athena: ?"));
     }
 
     public @Nullable AthenaUnbakedModel loadModel(BlockState state) {
@@ -55,6 +55,6 @@ public class AthenaUnbakedModelLoader {
 
     @SuppressWarnings("unchecked")
     public MapCodec<AthenaUnbakedModel> codec() {
-        return ((MapCodec<AthenaBlockModel>) type.codec()).xmap((model) -> new AthenaUnbakedModel(model, this), AthenaUnbakedModel::getModel);
+        return ((MapCodec<AthenaBlockModel>) type.codec()).xmap((model) -> new AthenaUnbakedModel(model, this), AthenaUnbakedModel::model);
     }
 }

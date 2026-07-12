@@ -17,7 +17,7 @@ public record AthenaCustomUnbakedBlockStateModel(
     public static final MapCodec<AthenaCustomUnbakedBlockStateModel> CODEC = FactoryManager.loaderCodec()
         .dispatchMap(
             DefaultModels.MODID + ":loader",
-            (value) -> value.root().getLoader(),
+            (stateModel) -> stateModel.root().loader(),
             (loader) -> loader.codec().xmap(AthenaCustomUnbakedBlockStateModel::new, AthenaCustomUnbakedBlockStateModel::root)
         );
 
