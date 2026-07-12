@@ -1,42 +1,86 @@
 package earth.terrarium.athena.impl.client.models;
 
-import com.google.gson.JsonObject;
+import com.mojang.serialization.*;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import earth.terrarium.athena.api.client.models.AthenaBlockModel;
-import earth.terrarium.athena.api.client.models.AthenaModelFactory;
+import earth.terrarium.athena.api.client.models.AthenaModelType;
 import earth.terrarium.athena.api.client.models.AthenaQuad;
 import earth.terrarium.athena.api.client.utils.AppearanceAndTintGetter;
-import earth.terrarium.athena.api.client.utils.CtmUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.util.GsonHelper;
+import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class GiantBlockModel implements AthenaBlockModel {
 
-    public static final AthenaModelFactory FACTORY = new Factory();
+    // TODO Is there an existing utility for this?
+    public static final MapCodec<GiantBlockModel> CODEC = new MapCodec<>() {
+        @Override
+        public <T> RecordBuilder<T> encode(GiantBlockModel input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+            prefix = Dimensions.CODEC.encode(input.dimensions, ops, prefix);
+            prefix = Materials.codec(input.dimensions).encode(input.materials, ops, prefix);
 
-    private final Int2ObjectMap<Material> materials;
-    private final int width;
-    private final int height;
+            return prefix;
+        }
 
-    public GiantBlockModel(Int2ObjectMap<Material> materials, int width, int height) {
+        @Override
+        public <T> DataResult<GiantBlockModel> decode(DynamicOps<T> ops, MapLike<T> input) {
+            return Dimensions.CODEC.decode(ops, input)
+                .flatMap((dimensions) ->
+                    Materials.codec(dimensions).decode(ops, input).map((materials) ->
+                        new GiantBlockModel(dimensions, materials)
+                    )
+                );
+        }
+
+        @Override
+        public <T> Stream<T> keys(DynamicOps<T> ops) {
+            // We can't predict the keys accurately given that they require the width and height, which we do not have here. Thus, we only include the keys that are guaranteed.
+            return Stream.concat(
+                Dimensions.CODEC.keys(ops),
+                Stream.of(
+                    "particle",
+                    "1",
+                    "2"
+                ).map(ops::createString)
+            );
+        }
+
+        @Override
+        public String toString() {
+            return "AthenaGiantBlockModelMapCodec";
+        }
+    };
+
+    public static final AthenaModelType TYPE = new AthenaModelType(CODEC);
+
+    private final Dimensions dimensions;
+    private final Materials materials;
+
+    public GiantBlockModel(Dimensions dimensions, Materials materials) {
+        this.dimensions = dimensions;
         this.materials = materials;
-        this.width = width;
-        this.height = height;
+    }
+
+    @Override
+    public AthenaModelType type() {
+        return TYPE;
     }
 
     @Override
     public List<AthenaQuad> getQuads(AppearanceAndTintGetter level, BlockState blockState, BlockPos pos, Direction direction) {
+        int width = dimensions.width();
+        int height = dimensions.height();
         int x = Math.abs(pos.getX());
         int y = Math.abs(pos.getY());
         int z = Math.abs(pos.getZ());
@@ -75,32 +119,44 @@ public class GiantBlockModel implements AthenaBlockModel {
     @Override
     public Int2ObjectMap<Material.Baked> getTextures(Function<Material, Material.Baked> getter) {
         Int2ObjectMap<Material.Baked> textures = new Int2ObjectArrayMap<>();
-        for (var entry : materials.int2ObjectEntrySet()) {
-            textures.put(entry.getIntKey(), getter.apply(entry.getValue()));
+        textures.put(0, getter.apply(materials.particle));
+
+        for (Map.Entry<Integer, Material> entry : materials.pixels().entrySet()) {
+            textures.put(entry.getKey().intValue(), getter.apply(entry.getValue()));
         }
+
         return textures;
     }
 
-    private static class Factory implements AthenaModelFactory {
+    public record Dimensions(int width, int height) {
+        public static final MapCodec<Dimensions> CODEC = RecordCodecBuilder.mapCodec((instance) -> instance.group(
+            ExtraCodecs.POSITIVE_INT.fieldOf("width").forGetter(Dimensions::width),
+            ExtraCodecs.POSITIVE_INT.fieldOf("height").forGetter(Dimensions::height)
+        ).apply(instance, Dimensions::new));
+    }
 
-        @Override
-        public Supplier<AthenaBlockModel> create(JsonObject json) {
-            final int width = GsonHelper.getAsInt(json, "width");
-            final int height = GsonHelper.getAsInt(json, "height");
-            final var materials = parseMaterials(GsonHelper.getAsJsonObject(json, "ctm_textures"), width, height);
-            return () -> new GiantBlockModel(materials, width, height);
+    public record Materials(
+        Material particle,
+        Map<Integer, Material> pixels
+    ) {
+        private static Keyable pixelKeys(Dimensions dimensions) {
+            return Keyable.forStrings(() -> IntStream
+                .range(1, dimensions.width * dimensions.height + 1)
+                .mapToObj(String::valueOf)
+            );
         }
 
-        private static Int2ObjectMap<Material> parseMaterials(JsonObject json, int width, int height) {
-            Int2ObjectMap<Material> materials = new Int2ObjectArrayMap<>();
-            materials.put(0, CtmUtils.blockMat(GsonHelper.getAsString(json, "particle")));
+        public static MapCodec<Materials> codec(Dimensions dimensions) {
+            MapCodec<Materials> baseCodec = RecordCodecBuilder.mapCodec((instance) -> instance.group(
+                Material.CODEC.fieldOf("particle").forGetter(Materials::particle),
+                Codec.simpleMap(
+                    Codec.STRING.xmap(Integer::parseInt, String::valueOf),
+                    Material.CODEC,
+                    pixelKeys(dimensions)
+                ).forGetter(Materials::pixels)
+            ).apply(instance, Materials::new));
 
-            for (int i = 1; i <= width * height; i++) {
-                final var material = CtmUtils.blockMat(GsonHelper.getAsString(json, String.valueOf(i)));
-                materials.put(i, material);
-            }
-
-            return materials;
+            return baseCodec.fieldOf("ctm_textures");
         }
     }
 }
