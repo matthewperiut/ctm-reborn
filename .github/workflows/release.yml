@@ -1,75 +1,105 @@
 name: Publish Release
-on:
-  workflow_dispatch:
-jobs:
-  publish-release:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
 
-      - name: Setup Java
-        uses: actions/setup-java@v3
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: temurin
           java-version: 25
 
-      - name: Setup Gradle Caches
-        uses: actions/cache@v3
-        with:
-          path: ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: ${{ runner.os }}-gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Setup Gradle Wrapper
-        run: chmod +x gradlew
+      - name: Build
+        run: ./gradlew build
 
-      - name: Get Properties
-        id: properties
+      - name: Read versions
+        id: versions
         run: |
-          echo "version=$(grep -m1 "^version=" gradle.properties | cut -c 9-)" >> $GITHUB_OUTPUT
-          echo "mcVersion=$(grep -m1 "^minecraft = " gradle/libs.versions.toml | cut -c 14- | rev | cut -c 2- | rev)" >> $GITHUB_OUTPUT
+          version="$(grep -m1 -E '^version *=' gradle.properties | cut -d= -f2- | tr -d ' ')"
+          minecraft="$(grep -m1 -E '^minecraft *=' gradle/libs.versions.toml | cut -d= -f2- | tr -d ' "')"
 
-      - name: Publish Release
-        run: ./gradlew publish
-        env:
-          MAVEN_USER: ${{ secrets.MAVEN_USERNAME }}
-          MAVEN_PASS: ${{ secrets.MAVEN_PASSWORD }}
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "minecraft=${minecraft}" >> "${GITHUB_OUTPUT}"
 
-      - name: Upload NeoForge Releases (Curse/Modrinth/Github)
-        id: neoforge_release
-        uses: Kir-Antipov/mc-publish@v3.3.0
+          # A snapshot is not a release, and publishing it as one is misleading. Anything that is not
+          # a plain release number goes out as a beta.
+          case "${minecraft}" in
+            *-snapshot-*|*-pre*|*-rc*) echo "type=beta" >> "${GITHUB_OUTPUT}" ;;
+            *)                         echo "type=release" >> "${GITHUB_OUTPUT}" ;;
+          esac
+
+          echo "Publishing ${version} for Minecraft ${minecraft}"
+
+      - name: Check which platforms were built
+        id: platforms
+        run: |
+          # The neoforge module is dropped from the build on Minecraft versions NeoForge has not
+          # shipped for, so its jar may legitimately not exist. Skip that upload instead of failing.
+          if compgen -G "neoforge/build/libs/*.jar" > /dev/null; then
+            echo "neoforge=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "neoforge=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice::No NeoForge jar was built, skipping the NeoForge upload."
+          fi
+
+      - name: Publish Fabric
+        uses: Kir-Antipov/mc-publish@v3.3
         with:
-          curseforge-id: ${{ vars.CURSE_ID }}
-          curseforge-token: ${{ secrets.CURSE_TOKEN }}
-
           modrinth-id: ${{ vars.MODRINTH_ID }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
 
-          files: ./neoforge/build/libs/!(*-@(dev|sources|dev-shadow)).jar
-          name: "[NeoForge] CTM Reborn ${{ steps.properties.outputs.version }}"
-          version: ${{ steps.properties.outputs.version }}
-          version-type: release
-          changelog-file: changelog.md
-          loaders: neoforge
-          game-versions: ${{ steps.properties.outputs.mcVersion }}
-          version-resolver: exact
+          curseforge-id: ${{ vars.CURSEFORGE_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
-      - name: Upload Fabric Releases (Curse/Modrinth/Github)
-        id: fabric_release
-        uses: Kir-Antipov/mc-publish@v3.3.0
-        with:
-          curseforge-id: ${{ vars.CURSE_ID }}
-          curseforge-token: ${{ secrets.CURSE_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-          modrinth-id: ${{ vars.MODRINTH_ID }}
-          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          name: "[Fabric] CTM Reborn ${{ steps.versions.outputs.version }} for ${{ steps.versions.outputs.minecraft }}"
+          version: "fabric-${{ steps.versions.outputs.minecraft }}-${{ steps.versions.outputs.version }}"
+          version-type: ${{ steps.versions.outputs.type }}
 
-          files: ./fabric/build/libs/!(*-@(dev|sources|dev-shadow)).jar
-          name: "[Fabric] CTM Reborn ${{ steps.properties.outputs.version }}"
-          version: ${{ steps.properties.outputs.version }}
-          version-type: release
-          changelog-file: changelog.md
+          files: fabric/build/libs/!(*-@(dev|sources|javadoc)).jar
           loaders: fabric
-          game-versions: ${{ steps.properties.outputs.mcVersion }}
-          version-resolver: exact
+          dependencies: fabric-api(required)
+
+          # Tag exactly the Minecraft version this was built against. The default filter is
+          # "releases", which silently drops snapshot versions and would publish a snapshot build
+          # with no game version at all, so no filtering is applied here.
+          game-versions: ${{ steps.versions.outputs.minecraft }}
+          game-version-filter: none
+
+          changelog-file: changelog.md
+
+      - name: Publish NeoForge
+        if: steps.platforms.outputs.neoforge == 'true'
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ vars.MODRINTH_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          curseforge-id: ${{ vars.CURSEFORGE_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          name: "[NeoForge] CTM Reborn ${{ steps.versions.outputs.version }} for ${{ steps.versions.outputs.minecraft }}"
+          version: "neoforge-${{ steps.versions.outputs.minecraft }}-${{ steps.versions.outputs.version }}"
+          version-type: ${{ steps.versions.outputs.type }}
+
+          files: neoforge/build/libs/!(*-@(dev|sources|javadoc)).jar
+          loaders: neoforge
+
+          game-versions: ${{ steps.versions.outputs.minecraft }}
+          game-version-filter: none
+
+          changelog-file: changelog.md
