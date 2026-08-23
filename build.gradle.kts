@@ -35,10 +35,6 @@ subprojects {
         }
     }
 
-    repositories {
-        maven("https://prmaven.neoforged.net/NeoForge/pr2879")
-    }
-
     dependencies {
         if (platform != Platform.COMMON) {
             annotationProcessor(rootProject.libs.service.plugin)
@@ -49,13 +45,13 @@ subprojects {
         artifactId = "${rootProject.name}-${platform.name}-${rootProject.libs.versions.minecraft.get()}".lowercase()
 
         pom = GitHubPom(
-            "Athena $platform",
-            "A multiplatform baked model library for Minecraft mods",
+            "CTM Reborn $platform",
+            "A multiplatform baked model library for Minecraft mods, forked from Athena",
             "MIT",
-            "https://github.com/terrarium-earth/Athena"
+            "https://github.com/matthewperiut/ctm-reborn"
         )
 
-        repo = "https://maven.teamresourceful.com/repository/terrarium/"
+        repo = "https://maven.pkg.github.com/matthewperiut/ctm-reborn"
     }
 }
 

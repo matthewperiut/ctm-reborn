@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AthenaResourceLoader extends SimpleJsonResourceReloadListener<@NotNull JsonElement> {
 
     private static final String KEY = DefaultModels.MODID + ":loader";
+    private static final String FORK_KEY = DefaultModels.MOD_ID + ":loader";
 
     public static final AthenaResourceLoader INSTANCE = new AthenaResourceLoader();
 
@@ -35,7 +36,7 @@ public class AthenaResourceLoader extends SimpleJsonResourceReloadListener<@NotN
 
     public static void addBlockstateData(Identifier stateId, JsonElement data) {
         if (!(data instanceof JsonObject object)) return;
-        if (!object.has(KEY)) return;
+        if (!object.has(KEY) && !object.has(FORK_KEY)) return;
         INSTANCE.blockstateData.put(stateId, object);
     }
 
@@ -59,7 +60,7 @@ public class AthenaResourceLoader extends SimpleJsonResourceReloadListener<@NotN
 
     private static JsonObject checkObject(Identifier modelType, JsonElement data) {
         if (data instanceof JsonObject object) {
-            String type = GsonHelper.getAsString(object, KEY, "");
+            String type = GsonHelper.getAsString(object, KEY, GsonHelper.getAsString(object, FORK_KEY, ""));
             if (modelType.toString().equals(type)) {
                 return object;
             }

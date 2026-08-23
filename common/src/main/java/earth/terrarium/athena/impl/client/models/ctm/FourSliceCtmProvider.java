@@ -1,6 +1,8 @@
 package earth.terrarium.athena.impl.client.models.ctm;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.DataResult;
 import earth.terrarium.athena.api.client.models.AthenaQuad;
 import earth.terrarium.athena.api.client.utils.CtmMaterials;
 import earth.terrarium.athena.api.client.utils.CtmState;
@@ -40,6 +42,11 @@ public record FourSliceCtmProvider(
     }
 
     public record Type(CtmMaterials materials) implements CtmProvider.Type {
+        @Override
+        public <T> DataResult<T> encode(DynamicOps<T> ops, T prefix) {
+            return CODEC.encode(this, ops, prefix);
+        }
+
         @Override
         public CtmProvider build(MaterialStorage materials) {
             return new FourSliceCtmProvider(

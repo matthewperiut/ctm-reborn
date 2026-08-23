@@ -1,6 +1,6 @@
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-rootProject.name = "athena"
+rootProject.name = "ctm-reborn"
 
 pluginManagement {
     repositories {

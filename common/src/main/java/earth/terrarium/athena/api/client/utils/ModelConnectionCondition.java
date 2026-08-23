@@ -5,6 +5,7 @@ import com.google.common.collect.HashBiMap;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.Optionull;
@@ -16,7 +17,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -34,9 +34,34 @@ public sealed interface ModelConnectionCondition extends BiPredicate<BlockState,
             )
         );
 
-    Codec<ModelConnectionCondition> CODEC = TYPE_CODEC
-        .dispatch(ModelConnectionCondition::codec, Function.identity())
-        .withAlternative(False.CODEC.codec());
+    Codec<ModelConnectionCondition> DISPATCH_CODEC = TYPE_CODEC.dispatch(ModelConnectionCondition::codec, Function.identity());
+
+    /**
+     * A condition that fails to read resolves to {@link False}, matching the hand written parser this replaced: an
+     * unreadable condition never connects instead of failing the model it belongs to. Because nested conditions are
+     * read through this same codec, a malformed entry inside an {@code and}/{@code or} list only knocks out that one
+     * entry, exactly as before. Unlike the old parser the failure is logged rather than swallowed silently.
+     */
+    Codec<ModelConnectionCondition> CODEC = new Codec<>() {
+        @Override
+        public <T> DataResult<Pair<ModelConnectionCondition, T>> decode(DynamicOps<T> ops, T input) {
+            return DataResult.success(
+                DISPATCH_CODEC.decode(ops, input)
+                    .resultOrPartial((error) -> AthenaUtils.LOGGER.warn("Ignoring invalid connection condition, it will never connect: {}", error))
+                    .orElseGet(() -> Pair.of(False.INSTANCE, ops.empty()))
+            );
+        }
+
+        @Override
+        public <T> DataResult<T> encode(ModelConnectionCondition input, DynamicOps<T> ops, T prefix) {
+            return DISPATCH_CODEC.encode(input, ops, prefix);
+        }
+
+        @Override
+        public String toString() {
+            return "AthenaModelConnectionCondition";
+        }
+    };
 
     MapCodec<ModelConnectionCondition> CONNECTS_TO_CODEC = CODEC
         .optionalFieldOf("connect_to", SameState.INSTANCE);
@@ -72,17 +97,10 @@ public sealed interface ModelConnectionCondition extends BiPredicate<BlockState,
 
         @Override
         public boolean test(BlockState selfState, BlockState otherState) {
-            if (conditions().isEmpty()) {
-                return false;
-            }
-
-            return conditions()
+            // An empty list never connects, matching the parser this replaced.
+            return !conditions().isEmpty() && conditions()
                 .stream()
-                .reduce(
-                    true,
-                    (base, condition) -> condition.test(selfState, otherState),
-                    (a, b) -> a && b
-                );
+                .allMatch((condition) -> condition.test(selfState, otherState));
         }
     }
 
@@ -101,11 +119,7 @@ public sealed interface ModelConnectionCondition extends BiPredicate<BlockState,
         public boolean test(BlockState selfState, BlockState otherState) {
             return conditions()
                 .stream()
-                .reduce(
-                    false,
-                    (base, condition) -> condition.test(selfState, otherState),
-                    (a, b) -> a || b
-                );
+                .anyMatch((condition) -> condition.test(selfState, otherState));
         }
     }
 
@@ -120,7 +134,6 @@ public sealed interface ModelConnectionCondition extends BiPredicate<BlockState,
                     optionalPair.map((pair) -> List.of(pair.getFirst(), pair.getSecond()))
             )
             .xmap(Xor::new, Xor::conditions);
-
 
         @Override
         public MapCodec<Xor> codec() {
@@ -140,10 +153,14 @@ public sealed interface ModelConnectionCondition extends BiPredicate<BlockState,
         }
     }
 
-    record State(Optional<Block> block, StatePropertiesPredicate propertiesPredicate) implements ModelConnectionCondition {
+    record State(Optional<Block> block, StatePropertiesPredicate properties) implements ModelConnectionCondition {
+        // An empty predicate matches every state, so leaving "properties" out tests the block alone - the behaviour
+        // the old parser had when the key was absent.
+        private static final StatePropertiesPredicate ANY = new StatePropertiesPredicate(List.of());
+
         public static final MapCodec<State> CODEC = RecordCodecBuilder.mapCodec((instance) -> instance.group(
             BuiltInRegistries.BLOCK.byNameCodec().optionalFieldOf("block").forGetter(State::block),
-            StatePropertiesPredicate.CODEC.optionalFieldOf("properties", StatePropertiesPredicate.Builder.properties().build().get()).forGetter(State::propertiesPredicate)
+            StatePropertiesPredicate.CODEC.optionalFieldOf("properties", ANY).forGetter(State::properties)
         ).apply(instance, State::new));
 
         @Override
@@ -153,6 +170,7 @@ public sealed interface ModelConnectionCondition extends BiPredicate<BlockState,
 
         @Override
         public boolean test(BlockState selfState, BlockState otherState) {
+            // No block means there is nothing to connect to - never fall back to the default (air).
             if (this.block().isEmpty()) {
                 return false;
             }
@@ -163,7 +181,7 @@ public sealed interface ModelConnectionCondition extends BiPredicate<BlockState,
                 return false;
             }
 
-            return propertiesPredicate().matches(otherState);
+            return properties().matches(otherState);
         }
     }
 

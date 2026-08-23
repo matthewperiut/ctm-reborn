@@ -1,18 +1,22 @@
 {
   "schemaVersion": 1,
-  "id": "athena",
+  "id": "ctm_reborn",
+  "provides": [
+    "athena"
+  ],
   "version": "${version}",
-  "name": "Athena",
-  "description": "Crossplatform Baked Model Loader",
+  "name": "CTM Reborn",
+  "description": "Crossplatform Baked Model Loader. A fork of Athena by ThatGravyBoat / Terrarium Earth, maintained to keep connected textures working on current Minecraft versions for Chisel Reborn. It is intended to be deprecated once Athena itself updates.",
   "authors": [
     "ThatGravyBoat"
   ],
   "contributors": [
+    "matthewperiut"
   ],
   "contact": {
-    "website": "https://modrinth.com/mod/athena-ctm",
-    "repo": "https://github.com/terrarium-earth/athena",
-    "issues": "https://github.com/terrarium-earth/athena/issues"
+    "homepage": "https://modrinth.com/mod/athena-ctm",
+    "repo": "https://github.com/matthewperiut/ctm-reborn",
+    "issues": "https://github.com/matthewperiut/ctm-reborn/issues"
   },
   "license": "MIT",
   "icon": "icon.png",
@@ -35,6 +39,6 @@
   },
   "depends": {
     "fabric-api": "*",
-    "minecraft": ">=1.21.3"
+    "minecraft": ">=26.2"
   }
 }

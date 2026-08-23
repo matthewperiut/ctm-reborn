@@ -7,7 +7,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.client.event.RegisterBlockStateModels;
 
-@Mod(value = "athena", dist = Dist.CLIENT)
+@Mod(value = "ctm_reborn", dist = Dist.CLIENT)
 public class AthenaNeoForgeClient {
 
     public AthenaNeoForgeClient(IEventBus bus) {

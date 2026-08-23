@@ -21,7 +21,7 @@
     ],
     "embeds": [
         {
-            "title": "Athena",
+            "title": "CTM Reborn",
             "description": "**Changelog:**\\n${changelog}",
             "color": 797764,
             "fields": [

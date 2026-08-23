@@ -34,6 +34,10 @@ public class AthenaUnbakedModelLoader {
         return this.id;
     }
 
+    public AthenaModelType type() {
+        return this.type;
+    }
+
     public BlockStateModel bake(AthenaUnbakedModel model, @NonNull ModelBaker baker) {
         return this.baker.apply(model.model(), material -> baker.materials().get(material, () -> "Athena: ?"));
     }
@@ -46,10 +50,9 @@ public class AthenaUnbakedModelLoader {
             return null;
         }
 
-        return JsonOps.INSTANCE
-            .getMap(json)
-            .flatMap((map) -> codec().decode(JsonOps.INSTANCE, map))
-            .result()
+        return codec().codec()
+            .parse(JsonOps.INSTANCE, json)
+            .resultOrPartial(error -> AthenaUtils.LOGGER.error("Failed to load {} model for {}: {}", this.id, id, error))
             .orElse(null);
     }
 

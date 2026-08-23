@@ -1,1 +1,3 @@
-- Fixed vertex winding on neoforge
+- Updated to Minecraft 26.2
+- Rewrote model, ctm texture and connection-condition parsing on top of codecs
+- Added a data provider for generating Athena models

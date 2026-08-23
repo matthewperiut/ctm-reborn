@@ -1,33 +1,33 @@
 modLoader = "javafml"
 loaderVersion = "[1,)"
 license = "MIT"
-issueTrackerURL = "https://github.com/terrarium-earth/athena/issues"
+issueTrackerURL = "https://github.com/matthewperiut/ctm-reborn/issues"
 
 [[mods]]
-    modId = "athena"
+    modId = "ctm_reborn"
     version = "${version}"
-    displayName = "Athena"
-    displayURL = "https://modrinth.com/mod/athena-ctm"
+    displayName = "CTM Reborn"
+    displayURL = "https://github.com/matthewperiut/ctm-reborn"
     logoFile = "icon.png"
     authors = "ThatGravyBoat"
-    credits = ""
-    description = "Crossplatform Baked Model Loader"
+    credits = "Fork of Athena by ThatGravyBoat / Terrarium Earth, used under the MIT license. Maintained for Chisel Reborn until Athena updates, at which point this is deprecated."
+    description = "Crossplatform Baked Model Loader. A fork of Athena, kept current so connected textures keep working."
 
 [[mixins]]
     config = "athena.mixins.json"
 [[mixins]]
     config = "athena-neoforge.mixins.json"
 
-[[dependencies.athena]]
+[[dependencies.ctm_reborn]]
     modId = "neoforge"
     type="required"
-    versionRange = "[21.3.0-beta,)"
+    versionRange = "[26.2,)"
     ordering = "NONE"
     side = "BOTH"
 
-[[dependencies.athena]]
+[[dependencies.ctm_reborn]]
     modId = "minecraft"
     type="required"
-    versionRange = "[1.21.3,)"
+    versionRange = "[26.2,)"
     ordering = "NONE"
     side = "BOTH"
