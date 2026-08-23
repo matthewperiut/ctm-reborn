@@ -1,2 +1,1 @@
-- Updated to Minecraft 26.3 snapshots
-- Fabric only for now; NeoForge has published no 26.3 build
+- Updated to Minecraft 26.3
