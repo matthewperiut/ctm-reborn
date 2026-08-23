@@ -1,3 +1,5 @@
 - Updated to Minecraft 26.2
-- Rewrote model, ctm texture and connection-condition parsing on top of codecs
+- Rewrote model, ctm texture and connection condition parsing on top of codecs
+- Fixed and/or connection conditions returning the last condition instead of combining them
+- Fixed ctm texture types being written back out in the wrong format
 - Added a data provider for generating Athena models
