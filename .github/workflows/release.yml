@@ -8,6 +8,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Attaching the jars to the GitHub release needs write access; the default token is read only.
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -29,15 +32,27 @@ jobs:
           version="$(grep -m1 -E '^version *=' gradle.properties | cut -d= -f2- | tr -d ' ')"
           minecraft="$(grep -m1 -E '^minecraft *=' gradle/libs.versions.toml | cut -d= -f2- | tr -d ' "')"
 
+          # The Minecraft line this build targets, e.g. 26.3 from 26.3-snapshot-9.
+          line="${minecraft%%-*}"
+          next="$(echo "${line}" | awk -F. '{ $2 = $2 + 1; print $1 "." $2 }')"
+
+          case "${minecraft}" in
+            *-*)
+              # Built against a pre-release. Mojang has not shipped ${line} yet, so it does not exist
+              # as a game version on either platform and cannot be listed on its own. Advertise from
+              # this build up to the next line instead, which covers the rest of the line now and
+              # picks up ${line} itself as soon as it exists.
+              game_versions=">=${minecraft} <${next}"
+              ;;
+            *)
+              game_versions="${minecraft}"
+              ;;
+          esac
+
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
           echo "minecraft=${minecraft}" >> "${GITHUB_OUTPUT}"
-
-          # A snapshot is not a release, and publishing it as one is misleading. Anything that is not
-          # a plain release number goes out as a beta.
-          case "${minecraft}" in
-            *-snapshot-*|*-pre*|*-rc*) echo "type=beta" >> "${GITHUB_OUTPUT}" ;;
-            *)                         echo "type=release" >> "${GITHUB_OUTPUT}" ;;
-          esac
+          echo "line=${line}" >> "${GITHUB_OUTPUT}"
+          echo "game-versions=${game_versions}" >> "${GITHUB_OUTPUT}"
 
           echo "Publishing ${version} for Minecraft ${minecraft}"
 
@@ -64,24 +79,23 @@ jobs:
 
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-          name: "[Fabric] CTM Reborn ${{ steps.versions.outputs.version }} for ${{ steps.versions.outputs.minecraft }}"
-          version: "fabric-${{ steps.versions.outputs.minecraft }}-${{ steps.versions.outputs.version }}"
-          version-type: ${{ steps.versions.outputs.type }}
+          name: "[Fabric] CTM Reborn ${{ steps.versions.outputs.version }} for ${{ steps.versions.outputs.line }}"
+          version: "fabric-${{ steps.versions.outputs.line }}-${{ steps.versions.outputs.version }}"
+          version-type: release
 
           files: fabric/build/libs/!(*-@(dev|sources|javadoc)).jar
           loaders: fabric
           dependencies: fabric-api(required)
 
-          # Tag exactly the Minecraft version this was built against. The default filter is
-          # "releases", which silently drops snapshot versions and would publish a snapshot build
-          # with no game version at all, so no filtering is applied here.
-          game-versions: ${{ steps.versions.outputs.minecraft }}
+          # The default filter is "releases", which silently drops snapshots and would leave a
+          # snapshot build with no game version at all, so no filtering is applied.
+          game-versions: ${{ steps.versions.outputs.game-versions }}
           game-version-filter: none
 
           changelog-file: changelog.md
 
       - name: Publish NeoForge
-        if: steps.platforms.outputs.neoforge == 'true'
+        if: ${{ !cancelled() && steps.platforms.outputs.neoforge == 'true' }}
         uses: Kir-Antipov/mc-publish@v3.3
         with:
           modrinth-id: ${{ vars.MODRINTH_ID }}
@@ -92,14 +106,14 @@ jobs:
 
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-          name: "[NeoForge] CTM Reborn ${{ steps.versions.outputs.version }} for ${{ steps.versions.outputs.minecraft }}"
-          version: "neoforge-${{ steps.versions.outputs.minecraft }}-${{ steps.versions.outputs.version }}"
-          version-type: ${{ steps.versions.outputs.type }}
+          name: "[NeoForge] CTM Reborn ${{ steps.versions.outputs.version }} for ${{ steps.versions.outputs.line }}"
+          version: "neoforge-${{ steps.versions.outputs.line }}-${{ steps.versions.outputs.version }}"
+          version-type: release
 
           files: neoforge/build/libs/!(*-@(dev|sources|javadoc)).jar
           loaders: neoforge
 
-          game-versions: ${{ steps.versions.outputs.minecraft }}
+          game-versions: ${{ steps.versions.outputs.game-versions }}
           game-version-filter: none
 
           changelog-file: changelog.md
