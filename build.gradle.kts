@@ -23,6 +23,32 @@ subprojects {
         Platform.NEOFORGE -> apply(plugin = "com.teamresourceful.plugins.minecraft-platform-neoforge")
     }
 
+    // NeoForge pins the NeoForm (and therefore the Minecraft) version inside its own userdev artifact,
+    // and that pin wins over the version catalog. On a Minecraft version NeoForge has not shipped for yet
+    // that does not fail - it quietly builds the NeoForge jar against whatever Minecraft the newest
+    // NeoForge targets, while the rest of the project is on the newer one, and reports success.
+    //
+    // Fail loudly instead. If this trips, NeoForge has no build for the Minecraft version in the catalog.
+    if (platform == Platform.NEOFORGE) {
+        afterEvaluate {
+            val expected = rootProject.libs.versions.minecraft.get()
+            val neoForge = extensions.findByName("neoForge")
+            val actual = neoForge?.let {
+                runCatching { it.javaClass.getMethod("getMinecraftVersion").invoke(it) as? String }.getOrNull()
+            }
+
+            if (actual != null && actual != expected) {
+                throw GradleException(
+                    "NeoForge is building against Minecraft $actual, but this project targets $expected.\n" +
+                        "NeoForge ${rootProject.libs.versions.neoforge.get()} pins Minecraft $actual, so the jar would " +
+                        "be compiled against the wrong game version and still be labelled $expected.\n" +
+                        "Wait for a NeoForge build targeting $expected, or drop the neoforge module from " +
+                        "settings.gradle.kts until one exists."
+                )
+            }
+        }
+    }
+
     if (platform != Platform.COMMON) {
         tasks.withType<JavaCompile> {
             val serviceArgs = listOf(
