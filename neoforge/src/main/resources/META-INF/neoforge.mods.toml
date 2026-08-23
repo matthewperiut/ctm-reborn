@@ -21,13 +21,13 @@ issueTrackerURL = "https://github.com/matthewperiut/ctm-reborn/issues"
 [[dependencies.ctm_reborn]]
     modId = "neoforge"
     type="required"
-    versionRange = "[26.3,)"
+    versionRange = "[26.3,26.4)"
     ordering = "NONE"
     side = "BOTH"
 
 [[dependencies.ctm_reborn]]
     modId = "minecraft"
     type="required"
-    versionRange = "[26.3,)"
+    versionRange = "[26.3,26.4)"
     ordering = "NONE"
     side = "BOTH"

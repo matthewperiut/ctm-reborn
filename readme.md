@@ -13,7 +13,7 @@ Reborn will be deprecated in favour of it.
 
 | Branch | Minecraft | Status |
 | --- | --- | --- |
-| `main` | 26.3 snapshots | Fabric only - see below |
+| `main` | 26.3 (snapshots and release) | Fabric only - see below |
 | `26.2` | 26.2 | Release |
 
 ## NeoForge on 26.3
