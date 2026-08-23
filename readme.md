@@ -13,8 +13,17 @@ Reborn will be deprecated in favour of it.
 
 | Branch | Minecraft | Status |
 | --- | --- | --- |
-| `main` | 26.3 snapshots | Tracks the latest 26.3 snapshot |
+| `main` | 26.3 snapshots | Fabric only - see below |
 | `26.2` | 26.2 | Release |
+
+## NeoForge on 26.3
+
+NeoForge has not published a 26.3 build; 26.2.0.66 is the newest that exists. Its userdev artifact
+also pins its own NeoForm version, which overrides the one in the version catalog, so building the
+NeoForge module on `main` produces a jar compiled against Minecraft 26.2 while claiming to be 26.3.
+The module is therefore commented out of `settings.gradle.kts` on `main`. The NeoForge source is kept
+current, and both the include and the version pin are one line each to restore once NeoForge ships
+26.3. The `26.2` branch builds both platforms.
 
 ## Compatibility with Athena
 

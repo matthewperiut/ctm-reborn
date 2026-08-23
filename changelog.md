@@ -1,3 +1,2 @@
-- Updated to Minecraft 26.2
-- Rewrote model, ctm texture and connection-condition parsing on top of codecs
-- Added a data provider for generating Athena models
+- Updated to Minecraft 26.3 snapshots
+- Fabric only for now; NeoForge has published no 26.3 build
