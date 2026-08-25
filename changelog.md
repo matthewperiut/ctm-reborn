@@ -1,5 +1,3 @@
-- Updated to Minecraft 26.2
-- Rewrote model, ctm texture and connection condition parsing on top of codecs
-- Fixed and/or connection conditions returning the last condition instead of combining them
-- Fixed ctm texture types being written back out in the wrong format
-- Added a data provider for generating Athena models
+- Fixed every model failing to load because tint was read as a required field
+- Fixed mural textures rejecting the particle key and per direction ctm textures rejecting the default key
+- Named the Fabric and NeoForge jars apart so they no longer collide
