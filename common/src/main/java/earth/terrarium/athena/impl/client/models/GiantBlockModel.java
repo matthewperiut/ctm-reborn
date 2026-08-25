@@ -2,8 +2,10 @@ package earth.terrarium.athena.impl.client.models;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import com.mojang.serialization.Keyable;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import earth.terrarium.athena.api.client.models.AthenaBlockModel;
 import earth.terrarium.athena.api.client.models.AthenaModelType;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class GiantBlockModel implements AthenaBlockModel {
 
@@ -124,59 +127,62 @@ public class GiantBlockModel implements AthenaBlockModel {
         Material particle,
         Int2ObjectMap<Material> sections
     ) {
-        private static Keyable sectionKeys(Dimensions dimensions) {
-            return Keyable.forStrings(() -> IntStream
-                .rangeClosed(1, dimensions.sections())
-                .mapToObj(String::valueOf)
-            );
-        }
-
-        private static Codec<Integer> sectionKeyCodec(Dimensions dimensions) {
+        public static MapCodec<Materials> codec(Dimensions dimensions) {
             int sections = dimensions.sections();
 
-            return Codec.STRING.comapFlatMap(
-                (key) -> {
-                    int index;
-
-                    try {
-                        index = Integer.parseInt(key);
-                    } catch (NumberFormatException e) {
-                        return DataResult.error(() -> "Not a valid section index: " + key);
-                    }
-
-                    return index >= 1 && index <= sections ?
-                        DataResult.success(index) :
-                        DataResult.error(() -> "Section index " + key + " is outside of 1.." + sections);
-                },
-                String::valueOf
-            );
-        }
-
-        public static MapCodec<Materials> codec(Dimensions dimensions) {
-            MapCodec<Materials> baseCodec = RecordCodecBuilder.mapCodec((instance) -> instance.group(
-                Material.CODEC.fieldOf("particle").forGetter(Materials::particle),
-                Codec.simpleMap(
-                    sectionKeyCodec(dimensions),
-                    Material.CODEC,
-                    sectionKeys(dimensions)
-                ).xmap(
-                    (map) -> (Int2ObjectMap<Material>) new Int2ObjectArrayMap<Material>(map),
-                    (map) -> map
-                ).forGetter(Materials::sections)
-            ).apply(instance, Materials::new));
-
-            // The pre-codec parser read every index from 1 to width * height and threw if one was missing, so a
-            // partially defined model is still rejected rather than baking to a missing texture.
-            return baseCodec.fieldOf("ctm_textures").validate((materials) -> {
-                for (int index = 1; index <= dimensions.sections(); index++) {
-                    if (!materials.sections().containsKey(index)) {
-                        int missing = index;
-                        return DataResult.error(() -> "Missing ctm texture for section " + missing + " of " + dimensions.sections());
-                    }
+            // The section keys share the object with "particle", so they are read by index rather than through a map
+            // codec, which would try to parse "particle" as a section index and fail.
+            MapCodec<Materials> baseCodec = new MapCodec<>() {
+                @Override
+                public <T> Stream<T> keys(DynamicOps<T> ops) {
+                    return Stream.concat(
+                        Stream.of("particle"),
+                        IntStream.rangeClosed(1, sections).mapToObj(String::valueOf)
+                    ).map(ops::createString);
                 }
 
-                return DataResult.success(materials);
-            });
+                @Override
+                public <T> DataResult<Materials> decode(DynamicOps<T> ops, MapLike<T> input) {
+                    return Material.CODEC.fieldOf("particle").decode(ops, input).flatMap((particle) -> {
+                        Int2ObjectMap<Material> materials = new Int2ObjectArrayMap<>(sections);
+
+                        // The pre-codec parser read every index from 1 to width * height and threw if one was missing,
+                        // so a partially defined model is still rejected rather than baking to a missing texture.
+                        for (int index = 1; index <= sections; index++) {
+                            int section = index;
+                            T value = input.get(String.valueOf(index));
+
+                            if (value == null) {
+                                return DataResult.error(() -> "Missing ctm texture for section " + section + " of " + sections);
+                            }
+
+                            DataResult<Material> material = Material.CODEC.parse(ops, value);
+
+                            if (material.isError()) {
+                                String message = material.error().orElseThrow().message();
+                                return DataResult.error(() -> "Invalid ctm texture for section " + section + ": " + message);
+                            }
+
+                            materials.put(section, material.getOrThrow());
+                        }
+
+                        return DataResult.success(new Materials(particle, materials));
+                    });
+                }
+
+                @Override
+                public <T> RecordBuilder<T> encode(Materials input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
+                    prefix = Material.CODEC.fieldOf("particle").encode(input.particle(), ops, prefix);
+
+                    for (var entry : input.sections().int2ObjectEntrySet()) {
+                        prefix = prefix.add(String.valueOf(entry.getIntKey()), Material.CODEC.encodeStart(ops, entry.getValue()));
+                    }
+
+                    return prefix;
+                }
+            };
+
+            return baseCodec.fieldOf("ctm_textures");
         }
     }
 }
