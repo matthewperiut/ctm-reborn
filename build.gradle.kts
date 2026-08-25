@@ -49,6 +49,15 @@ subprojects {
         }
     }
 
+    // Both platform jars would otherwise be built as ctm-reborn-<version>.jar. That is ambiguous on
+    // Modrinth and CurseForge, where the two files are then indistinguishable by name, and on a GitHub
+    // release it is a collision that leaves only one of them attached.
+    if (platform != Platform.COMMON) {
+        configure<BasePluginExtension> {
+            archivesName.set("${rootProject.name}-${platform.id}")
+        }
+    }
+
     if (platform != Platform.COMMON) {
         tasks.withType<JavaCompile> {
             val serviceArgs = listOf(
