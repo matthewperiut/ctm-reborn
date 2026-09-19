@@ -1,18 +1,16 @@
 [versions]
 
 # Minecraft
-minecraft = "26.3-snapshot-9"
-neoform = "26.3-snapshot-9-1"
-fabric-api = "0.158.0+26.3"
-# NeoForge has not published a 26.3 build yet; 26.2.0.66 is the newest that exists.
-# When one lands, set it here and re-enable include("neoforge") in settings.gradle.kts.
-neoforge = "26.2.0.66"
+minecraft = "26.3"
+neoform = "26.3-1"
+fabric-api = "0.161.0+26.3"
+neoforge = "26.3.0.7-beta"
 
 # Libraries
 resourceful-service-plugin = "1.1.0"
 
 # Plugins
-resourceful-minecraft = "2.0.1"
+resourceful-minecraft = "2.0.2"
 resourceful-gradle = "0.0.6"
 
 [libraries]

@@ -1,3 +1,2 @@
-- Fixed every model failing to load because tint was read as a required field
-- Fixed mural textures rejecting the particle key and per direction ctm textures rejecting the default key
-- Named the Fabric and NeoForge jars apart so they no longer collide
+- Updated to the Minecraft 26.3 release
+- Restored the NeoForge build, on NeoForge 26.3.0.7-beta
